@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tournament Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pitch:#0E5E45; --pitch-d:#08402F; --pitch-l:#E3EFE9;
+  --chalk:#F3F5F1; --ink:#17222B; --muted:#5D6A72; --line:#D6DDD6; --card:#FFFFFF;
+  --yellow:#F2BE22; --red:#D13A2B; --blue:#2463A8; --amber:#B7791F;
+  --night:#04241A; --night-2:#0A3527;
+  --f-body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --f-cond:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --r:6px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--f-body);font-size:15px;line-height:1.45;color:var(--ink);background:var(--chalk);
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:var(--pitch)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.hidden{display:none!important}
+
+/* ---------- layout ---------- */
+#app{display:flex;min-height:100vh}
+#side{width:232px;flex:none;background:var(--pitch-d);color:#DCEBE4;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand b{display:block;font-family:var(--f-cond);font-weight:800;font-size:24px;line-height:1;color:#fff;letter-spacing:.2px}
+.brand small{display:block;margin-top:4px;color:#9FC3B3;font-size:13px}
+#nav{padding:8px 10px 20px;flex:1}
+#nav h6{margin:16px 10px 4px;font-size:12px;font-weight:600;color:#86AE9D}
+#nav a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:5px;color:#E7F1EC;text-decoration:none;font-weight:500}
+#nav a:hover{background:rgba(255,255,255,.06)}
+#nav a.on{background:#fff;color:var(--pitch-d);font-weight:700}
+#nav a .n{font-size:12px;background:rgba(255,255,255,.12);padding:0 7px;border-radius:9px}
+#nav a.on .n{background:var(--pitch-l)}
+.livedot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(209,58,43,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 7px rgba(209,58,43,0)}100%{box-shadow:0 0 0 0 rgba(209,58,43,0)}}
+.side-foot{padding:14px 20px;font-size:12px;color:#86AE9D;border-top:1px solid rgba(255,255,255,.08)}
+#shell{flex:1;min-width:0;display:flex;flex-direction:column}
+#top{display:flex;align-items:center;gap:12px;padding:10px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+#top .menu{display:none}
+#top select{max-width:340px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:#fff;font-weight:600}
+#top .grow{flex:1}
+#main{padding:24px;max-width:1280px;width:100%}
+
+/* ---------- type ---------- */
+h1,h2,h3,h4{font-family:var(--f-cond);font-weight:700;line-height:1.1;margin:0}
+h1{font-size:34px}
+h2{font-size:24px}
+h3{font-size:19px}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.page-head p{margin:4px 0 0;color:var(--muted);max-width:64ch}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.cond{font-family:var(--f-cond)}
+.right{text-align:right}
+.nowrap{white-space:nowrap}
+
+/* ---------- controls ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:600;text-decoration:none;color:var(--ink);white-space:nowrap}
+.btn:hover{border-color:#AEB9AF}
+.btn.pri{background:var(--pitch);border-color:var(--pitch);color:#fff}
+.btn.pri:hover{background:var(--pitch-d)}
+.btn.warn{background:var(--yellow);border-color:#D9A80F;color:#2A2100}
+.btn.dang{color:var(--red);border-color:#EBC2BD}
+.btn.dang.solid{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn.lg{padding:12px 18px;font-size:17px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;background:#E9EDEA;color:var(--muted);white-space:nowrap}
+.b-live{background:var(--red);color:#fff}
+.b-ok{background:#D7EEDF;color:#13633E}
+.b-warn{background:#FCEFC7;color:#7A5A00}
+.b-bad{background:#F8DCD8;color:#9B2417}
+.b-blue{background:#DCE8F6;color:#1C4F86}
+.dot{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.15)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.toolbar select,.toolbar input{padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:#fff}
+
+/* ---------- panels & tables ---------- */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:18px}
+.panel>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.panel>.pb{padding:14px 16px}
+.panel.flush>.pb{padding:0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.cols>.panel{margin-bottom:0}
+.stack>*+*{margin-top:18px}
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;color:var(--muted);font-size:13px;padding:9px 12px;border-bottom:1px solid var(--line);background:#FAFBF9;white-space:nowrap}
+.tbl td{padding:9px 12px;border-bottom:1px solid #ECEFEB;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tr.hl td{background:#FFF9E3}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl td.act{text-align:right;white-space:nowrap}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:600}
+
+/* stat line */
+.statline{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-bottom:18px}
+.statline>div{padding:12px 16px;border-right:1px solid var(--line)}
+.statline>div:last-child{border-right:0}
+.statline b{display:block;font-family:var(--f-cond);font-size:26px;font-weight:700;line-height:1.1}
+.statline span{font-size:13px;color:var(--muted)}
+.bar{height:8px;background:#E8ECE8;border-radius:4px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--pitch)}
+.bar.red i{background:var(--red)}
+
+/* ---------- matchday strip (dashboard hero) ---------- */
+.strip{background:var(--night);color:#fff;border-radius:var(--r);padding:18px 22px;margin-bottom:18px;position:relative;overflow:hidden}
+.strip:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 60px,transparent 60px 120px);pointer-events:none}
+.strip .meta{position:relative;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#9FC3B3;font-size:14px}
+.strip .meta b{color:#fff}
+.strip .row{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;margin:10px 0 12px}
+.strip .tm{font-family:var(--f-cond);font-weight:700;font-size:clamp(20px,3vw,32px);line-height:1.05}
+.strip .tm.r{text-align:right}
+.strip .tm i{display:block;width:34px;height:5px;border-radius:2px;margin-bottom:6px}
+.strip .tm.r i{margin-left:auto}
+.strip .sc{font-family:var(--f-cond);font-weight:800;font-size:clamp(48px,8vw,84px);line-height:.9;text-align:center;font-variant-numeric:tabular-nums}
+.strip .sc small{display:block;font-size:16px;font-weight:600;color:var(--yellow);margin-top:6px}
+.strip .btns{position:relative}
+.strip .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
+.strip .btn.warn{background:var(--yellow);color:#2A2100;border-color:var(--yellow)}
+
+/* ---------- live console ---------- */
+.scorebox{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;background:var(--night);color:#fff;border-radius:var(--r);padding:20px}
+.scorebox .tm h2{font-size:clamp(20px,3vw,34px)}
+.scorebox .tm i{display:block;height:6px;width:44px;border-radius:3px;margin-bottom:8px}
+.scorebox .tm.r{text-align:right}.scorebox .tm.r i{margin-left:auto}
+.scorebox .tm small{color:#9FC3B3}
+.scorebox .sc{text-align:center}
+.scorebox .sc b{font-family:var(--f-cond);font-weight:800;font-size:clamp(56px,9vw,110px);line-height:.85;font-variant-numeric:tabular-nums}
+.scorebox .sc .sep{font-family:var(--f-cond);font-size:48px;color:#5E8B79;padding:0 10px;vertical-align:18px}
+.scorebox .clock{font-family:var(--f-cond);font-weight:700;font-size:30px;color:var(--yellow);font-variant-numeric:tabular-nums}
+.scorebox .sub{color:#B8D3C7;font-size:14px;margin-top:2px}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 0}
+.ctrl select{padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:#fff}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.side-p{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px;border-top:5px solid var(--c,#888)}
+.side-p h3{margin-bottom:10px}
+.side-p select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;background:#fff}
+.bigbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.bigbtns .btn{padding:12px 8px;font-size:15px}
+.bigbtns .btn.score{background:var(--pitch);color:#fff;border-color:var(--pitch);font-family:var(--f-cond);font-size:20px}
+.set-now{font-family:var(--f-cond);font-size:56px;font-weight:800;text-align:center;line-height:1;margin:6px 0 12px;font-variant-numeric:tabular-nums}
+.feed{max-height:460px;overflow-y:auto}
+.ev{display:grid;grid-template-columns:52px 1fr auto;gap:10px;padding:9px 14px;border-bottom:1px solid #ECEFEB;align-items:start}
+.ev .mn{font-family:var(--f-cond);font-weight:700;color:var(--pitch);font-size:17px}
+.ev.k-goal{background:#F0F8F3}
+.ev.k-yc .mn{color:var(--amber)}
+.ev.k-rc .mn{color:var(--red)}
+.ev.k-com .t{color:var(--ink)}
+.comm-box{display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.comm-box textarea{flex:1;resize:vertical;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r)}
+
+/* ---------- bracket ---------- */
+.bracket{display:flex;gap:22px;overflow-x:auto;padding:16px}
+.bracket .rd{min-width:200px;display:flex;flex-direction:column;justify-content:space-around;gap:12px}
+.bracket .rd h4{font-size:16px;color:var(--muted);margin-bottom:4px}
+.bm{border:1px solid var(--line);border-radius:var(--r);background:#fff;font-size:14px}
+.bm div{display:flex;justify-content:space-between;padding:6px 10px;gap:8px}
+.bm div+div{border-top:1px solid #ECEFEB}
+.bm .w{font-weight:700;background:#F0F8F3}
+
+/* ---------- forms & modal ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.fld>span{font-weight:600;color:var(--muted);font-size:13px}
+.fld input,.fld select,.fld textarea{padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:#fff;width:100%}
+.fld small{color:var(--muted)}
+.full{grid-column:1/-1}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px}
+.chk input{width:17px;height:17px}
+.chkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;padding:8px;border:1px solid var(--line);border-radius:var(--r);max-height:180px;overflow:auto}
+#modal{position:fixed;inset:0;background:rgba(10,25,20,.55);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:6vh 14px;overflow-y:auto}
+#mBox{background:#fff;border-radius:8px;width:100%;max-width:620px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+#mBox.wide{max-width:900px}
+#mBox>header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+#mBody{padding:18px}
+#mBox>footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line);background:#FAFBF9;border-radius:0 0 8px 8px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:6px;z-index:200;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+
+/* ---------- screen modes (public board / overlay) ---------- */
+#screen{display:none}
+body.screen-mode #app{display:none}
+body.screen-mode #screen{display:block}
+body.board-mode{background:var(--night);color:#fff}
+.board{min-height:100vh;padding:22px clamp(14px,3vw,40px)}
+.board-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.12);padding-bottom:12px;margin-bottom:20px}
+.board-top h1{font-size:clamp(26px,4vw,44px)}
+.board-top span{color:#9FC3B3}
+.board-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:22px}
+.bpanel{background:var(--night-2);border-radius:var(--r);padding:16px;margin-bottom:22px}
+.bpanel h3{color:#9FC3B3;font-size:18px;margin-bottom:10px;font-weight:600}
+.big-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;padding:10px 0}
+.big-score .tm{font-family:var(--f-cond);font-weight:700;font-size:clamp(24px,4vw,52px);line-height:1}
+.big-score .tm.r{text-align:right}
+.big-score .tm i{display:block;height:7px;width:60px;border-radius:3px;margin-bottom:10px}
+.big-score .tm.r i{margin-left:auto}
+.big-score .sc{font-family:var(--f-cond);font-weight:800;font-size:clamp(70px,12vw,170px);line-height:.85;text-align:center;font-variant-numeric:tabular-nums}
+.board .clk{text-align:center;font-family:var(--f-cond);font-size:clamp(26px,3vw,44px);color:var(--yellow);font-weight:700}
+.board table{width:100%;border-collapse:collapse;font-size:15px}
+.board th{color:#86AE9D;font-weight:600;text-align:left;padding:6px 8px;font-size:13px}
+.board td{padding:7px 8px;border-top:1px solid rgba(255,255,255,.08)}
+.board .num{text-align:right;font-variant-numeric:tabular-nums}
+.bev{display:grid;grid-template-columns:48px 1fr;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.bev .mn{font-family:var(--f-cond);font-weight:700;color:var(--yellow);font-size:18px}
+.video{position:relative;padding-top:56.25%;background:#000;border-radius:var(--r);overflow:hidden}
+.video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.mini-res{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;padding:7px 0;border-top:1px solid rgba(255,255,255,.08);align-items:center}
+.mini-res .r{text-align:right}
+.mini-res b{font-family:var(--f-cond);font-size:20px;font-variant-numeric:tabular-nums}
+.board .bm{background:var(--night);border-color:rgba(255,255,255,.15)}
+.board .bm div+div{border-top-color:rgba(255,255,255,.1)}
+.board .bm .w{background:var(--pitch)}
+.board .bracket{padding:0}
+body.overlay-mode{background:transparent!important}
+.ovl{display:inline-flex;align-items:stretch;margin:16px;font-family:var(--f-cond);font-weight:700;color:#fff;font-size:30px;box-shadow:0 6px 20px rgba(0,0,0,.35);border-radius:6px;overflow:hidden}
+.ovl>div{display:flex;align-items:center;padding:6px 14px}
+.ovl .t{background:var(--night);min-width:120px;gap:10px}
+.ovl .t i{width:8px;height:30px;border-radius:2px}
+.ovl .s{background:#fff;color:var(--night);font-size:36px;font-weight:800;font-variant-numeric:tabular-nums;padding:6px 18px}
+.ovl .c{background:var(--yellow);color:#2A2100;font-variant-numeric:tabular-nums}
+.ovl .p{background:var(--night-2);font-size:20px;color:#B8D3C7}
+
+/* lock */
+.lock{max-width:360px;margin:10vh auto;text-align:center}
+.lock input{width:100%;padding:12px;font-size:22px;text-align:center;letter-spacing:6px;border:1px solid var(--line);border-radius:var(--r);margin:14px 0}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  #side{position:fixed;left:0;top:0;z-index:60;transform:translateX(-100%);transition:transform .2s}
+  body.nav-open #side{transform:none}
+  body.nav-open:after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50}
+  #top{padding:10px 14px;gap:8px}
+  #top select{flex:1;min-width:0}
+  #top .grow{display:none}
+  #top .menu{display:inline-flex}
+  #main{padding:16px 14px}
+  .sides,.board-grid{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
+  .statline>div{border-right:0;border-bottom:1px solid var(--line)}
+}
+@media (max-width:560px){
+  .scorebox{grid-template-columns:1fr;text-align:center}
+  .scorebox .tm.r{text-align:center}.scorebox .tm i,.scorebox .tm.r i{margin:0 auto 8px}
+  .strip .row{grid-template-columns:1fr;text-align:center}
+  .strip .tm.r{text-align:center}.strip .tm i,.strip .tm.r i{margin:0 auto 6px}
+  #top .hide-sm{display:none}
+}
+@media (prefers-reduced-motion:reduce){.livedot{animation:none}#side{transition:none}}
+@media print{
+  #side,#top,.noprint,.btn,.toolbar{display:none!important}
+  #main{padding:0;max-width:none}
+  body{background:#fff}
+  .panel{border:0;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="brand"><b id="brandName">Tournament Office</b><small id="brandSub">Tournament management</small></div>
+    <nav id="nav"></nav>
+    <div class="side-foot" id="modeInfo"></div>
+  </aside>
+  <div id="shell">
+    <header id="top">
+      <button class="btn sm menu" onclick="document.body.classList.toggle('nav-open')" aria-label="Open menu">Menu</button>
+      <select id="curSel" onchange="setCur(this.value)" aria-label="Active tournament"></select>
+      <span class="grow"></span>
+      <span id="liveTop"></span>
+      <a class="btn sm hide-sm" id="boardLink" target="_blank" rel="noopener">Public scoreboard</a>
+    </header>
+    <main id="main"></main>
+  </div>
+</div>
+<div id="screen"></div>
+
+<div id="modal" class="hidden" onclick="if(event.target===this)closeModal()">
+  <div id="mBox" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <header><h3 id="mTitle"></h3><button class="btn sm" onclick="closeModal()" aria-label="Close">Close</button></header>
+    <div id="mBody"></div>
+    <footer><button class="btn" onclick="closeModal()">Cancel</button><button class="btn pri" id="mSave" onclick="modalSubmit()">Save</button></footer>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+<script>
+/* =====================================================================
+   TOURNAMENT OFFICE — single-file sports tournament management system
+   Storage: browser localStorage by default, Firebase Firestore optional
+   (Settings > Cloud sync). All top-level state uses var/function to
+   avoid TDZ issues with async Firebase loading.
+   ===================================================================== */
+var APP_KEY = 'tms_data_v1', FB_KEY = 'tms_fbcfg_v1', CUR_KEY = 'tms_cur_v1', PIN_OK = 'tms_pin_ok';
+var COLS = ['tournaments','teams','players','matches','referees','trophies','transactions','payments'];
+var DB = {}; COLS.forEach(function(c){ DB[c] = []; });
+var SETTINGS = { org:'Tournament Office', currency:'MVR', pin:'', venues:['Main ground'] };
+var MODE = 'local', FS = null, CUR = localStorage.getItem(CUR_KEY) || '';
+var FB_VER = '10.12.2';
+
+var SPORTS = {
+  'Football':     { mode:'goals',  clock:true,  dur:45, periods:['1st half','Half-time','2nd half','Extra time','Penalties'], events:['Yellow card','Red card','Substitution','Foul','Corner','Penalty','Save','Injury'], positions:['Goalkeeper','Defender','Midfielder','Forward'] },
+  'Futsal':       { mode:'goals',  clock:true,  dur:20, periods:['1st half','Half-time','2nd half','Extra time','Penalties'], events:['Yellow card','Red card','Substitution','Foul','Timeout','Save','Penalty'], positions:['Goalkeeper','Defender','Winger','Pivot'] },
+  'Handball':     { mode:'goals',  clock:true,  dur:30, periods:['1st half','Half-time','2nd half','Extra time'], events:['Yellow card','2-min suspension','Red card','Timeout','Save','7m throw'], positions:['Goalkeeper','Wing','Back','Pivot'] },
+  'Hockey':       { mode:'goals',  clock:true,  dur:15, periods:['Q1','Q2','Q3','Q4','Shoot-out'], events:['Green card','Yellow card','Red card','Penalty corner','Save'], positions:['Goalkeeper','Defender','Midfielder','Forward'] },
+  'Basketball':   { mode:'points', clock:true,  dur:10, pts:[1,2,3], periods:['Q1','Q2','Q3','Q4','Overtime'], events:['Foul','Timeout','Rebound','Assist','Steal','Block'], positions:['Point guard','Shooting guard','Small forward','Power forward','Center'] },
+  'Netball':      { mode:'points', clock:true,  dur:15, pts:[1],     periods:['Q1','Q2','Q3','Q4','Extra time'], events:['Contact','Obstruction','Timeout','Interception','Rebound'], positions:['GS','GA','WA','C','WD','GD','GK'] },
+  'Volleyball':   { mode:'sets',   clock:false, setPts:25, bestOf:5, periods:['Set 1','Set 2','Set 3','Set 4','Set 5'], events:['Timeout','Substitution','Ace','Block','Yellow card','Red card'], positions:['Setter','Outside hitter','Middle blocker','Opposite','Libero'] },
+  'Badminton':    { mode:'sets',   clock:false, setPts:21, bestOf:3, periods:['Game 1','Game 2','Game 3'], events:['Fault','Let','Interval'], positions:['Singles','Doubles'] },
+  'Table Tennis': { mode:'sets',   clock:false, setPts:11, bestOf:5, periods:['Game 1','Game 2','Game 3','Game 4','Game 5'], events:['Let','Timeout','Yellow card'], positions:['Singles','Doubles'] },
+  'Cricket':      { mode:'cricket',clock:false, periods:['1st innings','Innings break','2nd innings'], events:['Drinks break','Review','Catch','Run out','Stumped'], positions:['Batter','Bowler','All-rounder','Wicket-keeper'] },
+  'Other':        { mode:'points', clock:true,  dur:20, pts:[1], periods:['Period 1','Break','Period 2','Extra time'], events:['Foul','Timeout','Yellow card','Red card','Substitution'], positions:[] }
+};
+var INCOME_CATS = ['Sponsorship','Ticket sales','Donations','Food stall','Merchandise','Fines','Other income'];
+var EXPENSE_CATS = ['Venue & ground','Referee fees','Equipment','Jerseys & bibs','Media & streaming','Food & refreshments','Transport','Printing & banners','Medical & first aid','Prize money','Other expense'];
+var PAY_METHODS = ['Cash','Bank transfer','Card','Cheque','Online payment','Other'];
+
+/* ---------------- utilities ---------------- */
+function $(s){ return document.querySelector(s); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function num(v, d){ var n = parseFloat(v); return isNaN(n) ? (d || 0) : n; }
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+function today(){ var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+function addDays(ds, n){ var d = new Date(ds + 'T00:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+function fmtDate(ds){ if(!ds) return ''; var d = new Date(ds + 'T00:00:00'); return isNaN(d) ? ds : d.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' }); }
+function money(n){ return (SETTINGS.currency || '') + ' ' + num(n).toLocaleString(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+function byId(col, id){ if(!id) return null; for(var i = 0; i < DB[col].length; i++){ if(DB[col][i].id === id) return DB[col][i]; } return null; }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function toast(msg){ var t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('show'); }, 2400); }
+function baseUrl(){ return location.href.split('#')[0]; }
+function copyText(s){ (navigator.clipboard ? navigator.clipboard.writeText(s) : Promise.reject()).then(function(){ toast('Link copied'); }, function(){ prompt('Copy this link:', s); }); }
+
+/* ---------------- persistence ---------------- */
+function persistLocal(){
+  try { localStorage.setItem(APP_KEY, JSON.stringify({ db:DB, settings:SETTINGS })); }
+  catch(e){ toast('Browser storage is full. Export a backup and switch to cloud sync.'); }
+}
+function loadLocal(){
+  try {
+    var d = JSON.parse(localStorage.getItem(APP_KEY) || 'null');
+    if(d){ COLS.forEach(function(c){ DB[c] = (d.db && d.db[c]) || []; }); Object.assign(SETTINGS, d.settings || {}); }
+  } catch(e){ console.error(e); }
+}
+function save(col, obj){
+  if(!obj.id) obj.id = uid();
+  if(!obj.createdAt) obj.createdAt = Date.now();
+  obj.updatedAt = Date.now();
+  var arr = DB[col], i = arr.findIndex(function(x){ return x.id === obj.id; });
+  if(i >= 0) arr[i] = obj; else arr.push(obj);
+  if(MODE === 'firebase') FS.collection(col).doc(obj.id).set(clone(obj)).catch(fbErr);
+  else persistLocal();
+  scheduleRender();
+  return obj;
+}
+function removeDoc(col, id){
+  DB[col] = DB[col].filter(function(x){ return x.id !== id; });
+  if(MODE === 'firebase') FS.collection(col).doc(id).delete().catch(fbErr);
+  else persistLocal();
+  scheduleRender();
+}
+function saveSettings(){
+  if(MODE === 'firebase') FS.collection('meta').doc('settings').set(clone(SETTINGS)).catch(fbErr);
+  persistLocal();
+  scheduleRender();
+}
+function fbErr(e){ console.error(e); toast('Cloud error: ' + (e.code || e.message || e)); }
+
+/* ---------------- Firebase (optional) ---------------- */
+function loadScript(src){ return new Promise(function(res, rej){ var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function(){ rej(new Error('Could not load ' + src)); }; document.head.appendChild(s); }); }
+function initFirebase(cfg){
+  var base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
+  return loadScript(base + 'firebase-app-compat.js')
+    .then(function(){ return loadScript(base + 'firebase-firestore-compat.js'); })
+    .then(function(){
+      var app = firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
+      FS = firebase.firestore(app);
+      MODE = 'firebase';
+      return pullAll();
+    })
+    .then(function(){
+      COLS.forEach(function(c){
+        FS.collection(c).onSnapshot(function(s){ DB[c] = s.docs.map(function(d){ return d.data(); }); scheduleRender(); }, fbErr);
+      });
+      FS.collection('meta').doc('settings').onSnapshot(function(d){ if(d.exists){ Object.assign(SETTINGS, d.data()); scheduleRender(); } }, fbErr);
+      // polling fallback in case a listener stalls on a weak connection
+      setInterval(function(){ pullAll().then(scheduleRender).catch(function(){}); }, 30000);
+    });
+}
+function pullAll(){
+  var jobs = COLS.map(function(c){ return FS.collection(c).get().then(function(s){ DB[c] = s.docs.map(function(d){ return d.data(); }); }); });
+  jobs.push(FS.collection('meta').doc('settings').get().then(function(d){ if(d.exists) Object.assign(SETTINGS, d.data()); }));
+  return Promise.all(jobs);
+}
+function uploadLocalToCloud(){
+  if(MODE !== 'firebase') return toast('Connect to Firebase first');
+  var local; try { local = JSON.parse(localStorage.getItem(APP_KEY) || 'null'); } catch(e){}
+  if(!local || !local.db) return toast('No local data found on this device');
+  if(!confirm('Upload all data stored on this device to Firebase? Records with the same ID will be overwritten.')) return;
+  var writes = [];
+  COLS.forEach(function(c){ (local.db[c] || []).forEach(function(o){ writes.push(FS.collection(c).doc(o.id).set(o)); }); });
+  writes.push(FS.collection('meta').doc('settings').set(local.settings || SETTINGS));
+  Promise.all(writes).then(function(){ toast('Uploaded ' + (writes.length - 1) + ' records'); return pullAll(); }).then(scheduleRender).catch(fbErr);
+}
+
+/* ---------------- render loop ---------------- */
+var _rt = null;
+function scheduleRender(){ clearTimeout(_rt); _rt = setTimeout(render, 25); }
+function route(){ var p = (location.hash.slice(1) || 'dashboard').split('/'); return { name:p[0], a:p[1] ? decodeURIComponent(p[1]) : '', b:p[2] ? decodeURIComponent(p[2]) : '' }; }
+
+function keepState(){
+  var st = { vals:{}, focus:null };
+  document.querySelectorAll('#main [data-keep]').forEach(function(el){ st.vals[el.id] = el.value; });
+  var a = document.activeElement;
+  if(a && a.id && a.closest && a.closest('#main')) st.focus = { id:a.id, s:a.selectionStart, e:a.selectionEnd };
+  return st;
+}
+function restoreState(st){
+  Object.keys(st.vals).forEach(function(id){ var el = document.getElementById(id); if(el && el.hasAttribute('data-keep')){ var opts = el.tagName === 'SELECT' ? Array.from(el.options).map(function(o){ return o.value; }) : null; if(!opts || opts.indexOf(st.vals[id]) >= 0) el.value = st.vals[id]; } });
+  if(st.focus){ var f = document.getElementById(st.focus.id); if(f){ f.focus(); try { f.setSelectionRange(st.focus.s, st.focus.e); } catch(e){} } }
+}
+
+function render(){
+  var r = route();
+  var screens = { board:1, match:1, overlay:1 };
+  document.body.classList.toggle('screen-mode', !!screens[r.name]);
+  document.body.classList.toggle('board-mode', r.name === 'board' || r.name === 'match');
+  document.body.classList.toggle('overlay-mode', r.name === 'overlay');
+  document.title = (SETTINGS.org || 'Tournament Office');
+  if(screens[r.name]){
+    $('#screen').innerHTML = VIEWS[r.name](r);
+    tickClocks();
+    return;
+  }
+  renderChrome(r);
+  if(SETTINGS.pin && sessionStorage.getItem(PIN_OK) !== String(SETTINGS.pin)){ $('#main').innerHTML = vLock(); return; }
+  var st = keepState();
+  var fn = VIEWS[r.name] || vDashboard;
+  try { $('#main').innerHTML = fn(r); }
+  catch(e){ console.error(e); $('#main').innerHTML = '<div class="panel"><div class="empty"><b>This page could not load</b>' + esc(e.message) + '</div></div>'; }
+  restoreState(st);
+  tickClocks();
+}
+
+function renderChrome(r){
+  var t = getCur();
+  $('#brandName').textContent = SETTINGS.org || 'Tournament Office';
+  $('#brandSub').textContent = t ? (t.sport + (t.category ? ', ' + t.category : '')) : 'Tournament management';
+  var ts = DB.tournaments.slice().sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+  $('#curSel').innerHTML = ts.length ? ts.map(function(x){ return '<option value="' + esc(x.id) + '"' + (t && x.id === t.id ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') : '<option>No tournaments yet</option>';
+  $('#curSel').disabled = !ts.length;
+  var liveN = t ? tMatches(t.id).filter(isLive).length : 0;
+  $('#liveTop').innerHTML = liveN ? '<a class="badge b-live" href="#live" style="text-decoration:none">' + liveN + ' live</a>' : '';
+  $('#boardLink').href = '#board' + (t ? '/' + t.id : '');
+  $('#boardLink').style.display = t ? '' : 'none';
+  var c = function(col, fn){ return t ? DB[col].filter(function(x){ return x.tournamentId === t.id && (!fn || fn(x)); }).length : 0; };
+  var groups = [
+    ['Overview', [['dashboard','Dashboard'],['tournaments','Tournaments', DB.tournaments.length]]],
+    ['Registration', [['teams','Teams', c('teams')],['players','Players', c('players')],['referees','Referees', DB.referees.length]]],
+    ['Matchday', [['matches','Fixtures', c('matches', function(m){ return !m.bye; })],['live','Live scoring', liveN ? '<span class="livedot"></span>' : ''],['standings','Standings & stats'],['stream','Live stream']]],
+    ['Money & awards', [['fees','Entry fees'],['finance','Income & expenses'],['trophies','Trophies & awards', c('trophies')]]],
+    ['System', [['settings','Settings']]]
+  ];
+  $('#nav').innerHTML = groups.map(function(g){
+    return '<h6>' + g[0] + '</h6>' + g[1].map(function(it){
+      var n = it[2] === undefined || it[2] === '' || it[2] === 0 ? '' : (typeof it[2] === 'number' ? '<span class="n">' + it[2] + '</span>' : it[2]);
+      return '<a href="#' + it[0] + '" class="' + (r.name === it[0] ? 'on' : '') + '">' + it[1] + n + '</a>';
+    }).join('');
+  }).join('');
+  $('#modeInfo').innerHTML = MODE === 'firebase' ? 'Cloud sync on (Firebase)' : 'Saved on this device';
+}
+
+/* ---------------- modal & forms ---------------- */
+var _modalSave = null;
+function openModal(title, body, onSave, opts){
+  opts = opts || {};
+  $('#mTitle').textContent = title;
+  $('#mBody').innerHTML = '<form id="mForm" class="grid2" onsubmit="modalSubmit(event)">' + body + '<button type="submit" hidden></button></form>';
+  $('#mSave').textContent = opts.saveText || 'Save';
+  $('#mSave').style.display = onSave ? '' : 'none';
+  $('#mBox').classList.toggle('wide', !!opts.wide);
+  _modalSave = onSave;
+  $('#modal').classList.remove('hidden');
+  var f = $('#mForm input:not([type=hidden]):not([type=checkbox]), #mForm select, #mForm textarea');
+  if(f) setTimeout(function(){ f.focus(); }, 30);
+}
+function closeModal(){ $('#modal').classList.add('hidden'); _modalSave = null; }
+function modalSubmit(e){
+  if(e) e.preventDefault();
+  if(!_modalSave){ closeModal(); return; }
+  var form = $('#mForm');
+  if(!form.reportValidity()) return;
+  var res = _modalSave(formData(form), form);
+  if(res !== false) closeModal();
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !$('#modal').classList.contains('hidden')) closeModal(); });
+
+function fld(o){
+  var t = o.t || 'text', v = o.v == null ? '' : o.v, id = 'f_' + o.n;
+  var cls = 'fld' + (o.full ? ' full' : '');
+  if(t === 'check') return '<label class="chk' + (o.full ? ' full' : '') + '"><input type="checkbox" name="' + o.n + '"' + (v ? ' checked' : '') + '> ' + esc(o.l) + '</label>';
+  if(t === 'hidden') return '<input type="hidden" name="' + o.n + '" value="' + esc(v) + '">';
+  var inner;
+  if(t === 'select'){
+    inner = '<select name="' + o.n + '" id="' + id + '"' + (o.req ? ' required' : '') + (o.onchange ? ' onchange="' + o.onchange + '"' : '') + '>' + (o.opts || []).map(function(op){
+      if(op && op.group) return '<optgroup label="' + esc(op.group) + '">' + op.items.map(function(x){ return '<option value="' + esc(x.v) + '"' + (String(x.v) === String(v) ? ' selected' : '') + '>' + esc(x.l) + '</option>'; }).join('') + '</optgroup>';
+      var val = typeof op === 'object' ? op.v : op, lab = typeof op === 'object' ? op.l : op;
+      return '<option value="' + esc(val) + '"' + (String(val) === String(v) ? ' selected' : '') + '>' + esc(lab) + '</option>';
+    }).join('') + '</select>';
+  } else if(t === 'textarea'){
+    inner = '<textarea name="' + o.n + '" id="' + id + '" rows="' + (o.rows || 3) + '"' + (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') + '>' + esc(v) + '</textarea>';
+  } else {
+    inner = '<input type="' + t + '" name="' + o.n + '" id="' + id + '" value="' + esc(v) + '"' + (o.req ? ' required' : '') + (o.step ? ' step="' + o.step + '"' : '') + (o.min != null ? ' min="' + o.min + '"' : '') + (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') + (o.list ? ' list="' + o.list + '"' : '') + '>';
+  }
+  return '<label class="' + cls + '"><span>' + esc(o.l) + (o.req ? ' *' : '') + '</span>' + inner + (o.hint ? '<small>' + o.hint + '</small>' : '') + '</label>';
+}
+function formData(form){
+  var o = {};
+  form.querySelectorAll('[name]').forEach(function(el){
+    if(el.type === 'checkbox'){
+      if(el.dataset.multi){ o[el.name] = o[el.name] || []; if(el.checked) o[el.name].push(el.value); }
+      else o[el.name] = el.checked;
+    } else if(el.type === 'number') o[el.name] = el.value === '' ? '' : Number(el.value);
+    else o[el.name] = el.value.trim();
+  });
+  return o;
+}
+
+/* ---------------- lookups ---------------- */
+function getCur(){
+  var t = byId('tournaments', CUR);
+  if(!t && DB.tournaments.length){ t = DB.tournaments.slice().sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); })[0]; CUR = t.id; }
+  return t || null;
+}
+function setCur(id){ CUR = id; localStorage.setItem(CUR_KEY, id); render(); }
+function tTeams(tid){ return DB.teams.filter(function(x){ return x.tournamentId === tid; }).sort(function(a,b){ return a.name.localeCompare(b.name); }); }
+function tPlayers(tid){ return DB.players.filter(function(x){ return x.tournamentId === tid; }); }
+function teamPlayers(teamId){ return DB.players.filter(function(p){ return p.teamId === teamId; }).sort(function(a,b){ return num(a.number, 999) - num(b.number, 999) || a.name.localeCompare(b.name); }); }
+function mSort(a, b){ return ((a.date || '9999') + (a.time || '99')).localeCompare((b.date || '9999') + (b.time || '99')) || num(a.round) - num(b.round) || num(a.slot) - num(b.slot); }
+function tMatches(tid){ return DB.matches.filter(function(x){ return x.tournamentId === tid; }).sort(mSort); }
+function teamName(id){ if(!id) return 'BYE'; var t = byId('teams', id); return t ? t.name : 'TBD'; }
+function teamShort(id){ var t = byId('teams', id); return t ? (t.short || t.name.slice(0,3).toUpperCase()) : (id ? 'TBD' : 'BYE'); }
+function teamColor(id){ var t = byId('teams', id); return (t && t.color) || '#8A958F'; }
+function playerName(id){ var p = byId('players', id); return p ? (p.name + (p.number !== '' && p.number != null ? ' (#' + p.number + ')' : '')) : ''; }
+function sportOf(m){ var t = byId('tournaments', m.tournamentId); return SPORTS[t && t.sport] || SPORTS.Other; }
+function isLive(m){ return m.status === 'live' || m.status === 'break'; }
+function refNames(m){ return (m.refereeIds || []).map(function(id){ var r = byId('referees', id); return r ? r.name : ''; }).filter(Boolean).join(', '); }
+function feeDue(team){ var t = byId('tournaments', team.tournamentId); return team.fee === '' || team.fee == null ? num(t && t.entryFee) : num(team.fee); }
+function feePaid(team){ return DB.payments.filter(function(p){ return p.teamId === team.id; }).reduce(function(s,p){ return s + num(p.amount); }, 0); }
+function feeBadge(team){
+  var d = feeDue(team), p = feePaid(team);
+  if(d <= 0) return '<span class="badge">No fee</span>';
+  if(p >= d) return '<span class="badge b-ok">Paid</span>';
+  if(p > 0) return '<span class="badge b-warn">Part paid</span>';
+  return '<span class="badge b-bad">Unpaid</span>';
+}
+function statusBadge(m){
+  if(m.bye) return '<span class="badge">Bye</span>';
+  var map = { scheduled:['Scheduled',''], live:['Live','b-live'], break:['Break','b-warn'], finished:['Full time','b-ok'], postponed:['Postponed','b-bad'], cancelled:['Cancelled','b-bad'] };
+  var x = map[m.status] || [m.status, ''];
+  return '<span class="badge ' + x[1] + '">' + x[0] + '</span>';
+}
+
+/* ---------------- scoring engine ---------------- */
+function overs(b){ b = num(b); return Math.floor(b / 6) + '.' + (b % 6); }
+function score(m){
+  var sp = sportOf(m);
+  if(sp.mode === 'sets'){
+    var sets = m.sets && m.sets.length ? m.sets : [{ h:0, a:0 }];
+    var done = m.status === 'finished' ? sets : sets.slice(0, -1);
+    var h = 0, a = 0;
+    done.forEach(function(s){ if(s.h > s.a) h++; else if(s.a > s.h) a++; });
+    var shown = sets.filter(function(s, i){ return s.h || s.a || i < sets.length - 1; });
+    return { h:h, a:a, hT:String(h), aT:String(a), cur:sets[sets.length - 1], sub:shown.map(function(s){ return s.h + '-' + s.a; }).join('  ') };
+  }
+  if(sp.mode === 'cricket'){
+    var c = m.cricket || {}, H = c.home || { r:0, w:0, b:0 }, A = c.away || { r:0, w:0, b:0 };
+    return { h:H.r, a:A.r, hT:H.r + '/' + H.w, aT:A.r + '/' + A.w, sub:overs(H.b) + ' ov  v  ' + overs(A.b) + ' ov' };
+  }
+  var hh = 0, aa = 0;
+  (m.events || []).forEach(function(e){ if(e.pts){ if(e.side === 'home') hh += e.pts; else aa += e.pts; } });
+  return { h:hh, a:aa, hT:String(hh), aT:String(aa), sub:m.pens ? 'Penalties ' + m.pens.h + '-' + m.pens.a : '' };
+}
+function winnerOf(m){
+  if(m.status !== 'finished') return null;
+  if(m.bye) return m.homeId;
+  if(m.winnerId) return m.winnerId;
+  var s = score(m);
+  if(s.h > s.a) return m.homeId;
+  if(s.a > s.h) return m.awayId;
+  return null;
+}
+function loserOf(m){ var w = winnerOf(m); if(!w || m.bye) return null; return w === m.homeId ? m.awayId : m.homeId; }
+
+/* clocks */
+function clockSecs(m){ var c = m.clock || {}; var s = num(c.base); if(c.running && c.startedAt) s += (Date.now() - c.startedAt) / 1000; return Math.max(0, Math.floor(s)); }
+function fmtClock(s){ return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+function minuteOf(m){ return sportOf(m).clock ? Math.floor(clockSecs(m) / 60) + 1 : ''; }
+function tickClocks(){
+  document.querySelectorAll('[data-clock]').forEach(function(el){
+    var m = byId('matches', el.getAttribute('data-clock'));
+    if(m) el.textContent = fmtClock(clockSecs(m));
+  });
+}
+setInterval(tickClocks, 1000);
+
+/* standings */
+function groupsOf(tid){ var g = {}; tTeams(tid).forEach(function(t){ if(t.group) g[t.group] = 1; }); return Object.keys(g).sort(); }
+function standings(t, group){
+  var R = {};
+  tTeams(t.id).filter(function(x){ return !group || x.group === group; }).forEach(function(x){ R[x.id] = { team:x, P:0, W:0, D:0, L:0, F:0, A:0, Pts:0, form:[] }; });
+  var pw = num(t.ptsWin, 3), pd = num(t.ptsDraw, 1), pl = num(t.ptsLoss, 0);
+  tMatches(t.id).filter(function(m){ return !m.ko && !m.bye && m.status === 'finished' && R[m.homeId] && R[m.awayId]; }).forEach(function(m){
+    var s = score(m), h = R[m.homeId], a = R[m.awayId], w = winnerOf(m);
+    h.P++; a.P++; h.F += s.h; h.A += s.a; a.F += s.a; a.A += s.h;
+    if(w === m.homeId){ h.W++; a.L++; h.Pts += pw; a.Pts += pl; h.form.push('W'); a.form.push('L'); }
+    else if(w === m.awayId){ a.W++; h.L++; a.Pts += pw; h.Pts += pl; a.form.push('W'); h.form.push('L'); }
+    else { h.D++; a.D++; h.Pts += pd; a.Pts += pd; h.form.push('D'); a.form.push('D'); }
+  });
+  return Object.keys(R).map(function(k){ return R[k]; }).sort(function(x, y){ return y.Pts - x.Pts || (y.F - y.A) - (x.F - x.A) || y.F - x.F || x.team.name.localeCompare(y.team.name); });
+}
+function playerStats(tid){
+  var S = {};
+  DB.matches.filter(function(m){ return m.tournamentId === tid; }).forEach(function(m){
+    (m.events || []).forEach(function(e){
+      if(!e.playerId) return;
+      var s = S[e.playerId] = S[e.playerId] || { goals:0, pts:0, yc:0, rc:0, motm:0 };
+      if(e.pts && e.type !== 'Own goal'){ s.pts += e.pts; if(e.type === 'Goal') s.goals++; }
+      if(e.type === 'Yellow card') s.yc++;
+      if(e.type === 'Red card') s.rc++;
+    });
+    if(m.motm){ var s2 = S[m.motm] = S[m.motm] || { goals:0, pts:0, yc:0, rc:0, motm:0 }; s2.motm++; }
+  });
+  return S;
+}
+
+/* finance ledger: manual transactions + entry fee payments + trophy costs */
+function ledger(tid){
+  var L = [];
+  DB.payments.filter(function(p){ return !tid || p.tournamentId === tid; }).forEach(function(p){
+    L.push({ id:p.id, src:'payment', type:'income', category:'Entry fees', amount:num(p.amount), date:p.date, method:p.method, desc:'Entry fee: ' + teamName(p.teamId) + (p.ref ? ' (ref ' + p.ref + ')' : '') });
+  });
+  DB.transactions.filter(function(x){ return !tid || x.tournamentId === tid; }).forEach(function(x){
+    L.push(Object.assign({ src:'txn' }, x, { amount:num(x.amount) }));
+  });
+  DB.trophies.filter(function(x){ return (!tid || x.tournamentId === tid) && num(x.cost) > 0 && x.status !== 'Planned'; }).forEach(function(x){
+    L.push({ id:x.id, src:'trophy', type:'expense', category:'Trophies & medals', amount:num(x.cost), date:x.date || '', desc:x.title + (num(x.qty) > 1 ? ' x' + x.qty : '') + (x.supplier ? ', ' + x.supplier : '') });
+  });
+  return L.sort(function(a, b){ return (b.date || '').localeCompare(a.date || ''); });
+}
+function finTotals(tid){
+  var inc = 0, exp = 0;
+  ledger(tid).forEach(function(x){ if(x.type === 'income') inc += x.amount; else exp += x.amount; });
+  return { inc:inc, exp:exp, bal:inc - exp };
+}
+
+/* embeds */
+function embedUrl(u){
+  if(!u) return '';
+  var ch = u.match(/youtube\.com\/channel\/(UC[\w-]+)/);
+  if(ch) return 'https://www.youtube.com/embed/live_stream?channel=' + ch[1] + '&autoplay=1&mute=1';
+  var y = u.match(/(?:youtu\.be\/|[?&]v=|\/live\/|\/embed\/|\/shorts\/)([\w-]{11})/);
+  if(y) return 'https://www.youtube.com/embed/' + y[1] + '?autoplay=1&mute=1';
+  if(/facebook\.com|fb\.watch/.test(u)) return 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(u) + '&show_text=false&autoplay=true&mute=true';
+  return '';
+}
+function streamFor(m, t){
+  return (m && (m.youtubeUrl || m.facebookUrl)) || (t && (t.youtubeUrl || t.facebookUrl)) || '';
+}
+function videoHtml(u){ var e = embedUrl(u); return e ? '<div class="video"><iframe src="' + esc(e) + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="Live stream"></iframe></div>' : ''; }
+</script>
+<script>
+/* =========================== VIEWS =========================== */
+function head(title, sub, actions){
+  return '<div class="page-head"><div><h1>' + title + '</h1>' + (sub ? '<p>' + sub + '</p>' : '') + '</div><div class="btns noprint">' + (actions || '') + '</div></div>';
+}
+function noTournament(){
+  return head('No tournament yet', 'Create a tournament first. Teams, fixtures, fees and awards all belong to a tournament.') +
+    '<div class="btns"><button class="btn pri" onclick="editTournament()">Create tournament</button><button class="btn" onclick="loadDemo()">Load demo data</button></div>';
+}
+function emptyRow(cols, title, text){ return '<tr><td colspan="' + cols + '"><div class="empty"><b>' + title + '</b>' + (text || '') + '</div></td></tr>'; }
+
+/* ---------------- dashboard ---------------- */
+function vDashboard(){
+  var t = getCur();
+  if(!t) return vWelcome();
+  var ms = tMatches(t.id).filter(function(m){ return !m.bye; });
+  var live = ms.filter(isLive), done = ms.filter(function(m){ return m.status === 'finished'; }), up = ms.filter(function(m){ return m.status === 'scheduled'; });
+  var teams = tTeams(t.id), players = tPlayers(t.id);
+  var due = 0, paid = 0; teams.forEach(function(x){ due += feeDue(x); paid += feePaid(x); });
+  var fin = finTotals(t.id);
+  var feature = live[0] || up[0] || null;
+  var st = playerStats(t.id);
+  var scorers = Object.keys(st).map(function(k){ return { p:byId('players', k), s:st[k] }; }).filter(function(x){ return x.p && x.s.pts > 0; }).sort(function(a, b){ return b.s.pts - a.s.pts; }).slice(0, 5);
+
+  var h = head(esc(t.name), esc([t.sport, t.category, t.venue, t.startDate ? fmtDate(t.startDate) + (t.endDate ? ' to ' + fmtDate(t.endDate) : '') : ''].filter(Boolean).join(', ')),
+    '<button class="btn" onclick="editTournament(\'' + t.id + '\')">Edit tournament</button><a class="btn" href="#board/' + t.id + '" target="_blank" rel="noopener">Open scoreboard</a>');
+
+  h += feature ? stripHtml(feature, t) :
+    '<section class="strip"><div class="meta"><b>No fixtures yet</b></div><div style="position:relative;margin:10px 0 14px;max-width:60ch">Register teams, then generate the fixture list. League, knockout and group formats are supported.</div><div class="btns"><a class="btn warn" href="#teams">Register teams</a><a class="btn" href="#matches">Go to fixtures</a></div></section>';
+
+  h += '<div class="statline">' +
+    '<div><b>' + teams.length + (t.maxTeams ? ' / ' + t.maxTeams : '') + '</b><span>Teams registered</span></div>' +
+    '<div><b>' + players.length + '</b><span>Players</span></div>' +
+    '<div><b>' + done.length + ' / ' + ms.length + '</b><span>Matches played</span><div class="bar"><i style="width:' + (ms.length ? done.length / ms.length * 100 : 0) + '%"></i></div></div>' +
+    '<div><b>' + money(paid) + '</b><span>Entry fees of ' + money(due) + '</span><div class="bar"><i style="width:' + (due ? Math.min(100, paid / due * 100) : 0) + '%"></i></div></div>' +
+    '<div><b style="color:' + (fin.bal < 0 ? 'var(--red)' : 'inherit') + '">' + money(fin.bal) + '</b><span>Balance</span></div>' +
+    '</div>';
+
+  h += '<div class="cols">';
+  h += '<section class="panel"><header><h3>Next fixtures</h3><a href="#matches" class="small">All fixtures</a></header><div class="pb" style="padding:0">' + miniList(up.slice(0, 6), true) + '</div></section>';
+  h += '<section class="panel"><header><h3>Latest results</h3><a href="#standings" class="small">Standings</a></header><div class="pb" style="padding:0">' + miniList(done.slice(-6).reverse(), false) + '</div></section>';
+  h += '<section class="panel"><header><h3>Top scorers</h3></header><div class="pb" style="padding:0"><table class="tbl"><tbody>' +
+    (scorers.length ? scorers.map(function(x, i){ return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(x.p.name) + '</b><div class="small muted">' + esc(teamName(x.p.teamId)) + '</div></td><td class="num"><b>' + x.s.pts + '</b></td></tr>'; }).join('') : emptyRow(3, 'No scorers yet', 'Scores recorded with a player selected appear here.')) +
+    '</tbody></table></div></section>';
+  h += '</div>';
+  return h;
+}
+function stripHtml(m, t){
+  var s = score(m), sp = sportOf(m), live = isLive(m);
+  var clk = live && sp.clock ? '<small data-clock="' + m.id + '">' + fmtClock(clockSecs(m)) + '</small>' : '<small>' + (live ? esc(m.period || 'Live') : esc(fmtDate(m.date) + ' ' + (m.time || ''))) + '</small>';
+  return '<section class="strip"><div class="meta"><span>' + (live ? '<span class="livedot"></span> <b>Live now</b>' : '<b>Next up</b>') + (m.stage ? ', ' + esc(m.stage) : '') + '</span><span>' + esc(m.venue || '') + '</span></div>' +
+    '<div class="row"><div class="tm"><i style="background:' + esc(teamColor(m.homeId)) + '"></i>' + esc(teamName(m.homeId)) + '</div>' +
+    '<div class="sc">' + (live || m.status === 'finished' ? esc(s.hT) + ' - ' + esc(s.aT) : 'v') + clk + '</div>' +
+    '<div class="tm r"><i style="background:' + esc(teamColor(m.awayId)) + '"></i>' + esc(teamName(m.awayId)) + '</div></div>' +
+    '<div class="btns"><a class="btn warn" href="#live/' + m.id + '">' + (live ? 'Continue scoring' : 'Open scoring') + '</a><a class="btn" href="#match/' + m.id + '" target="_blank" rel="noopener">Match scoreboard</a></div></section>';
+}
+function miniList(list, upcoming){
+  if(!list.length) return '<div class="empty">' + (upcoming ? 'No upcoming fixtures.' : 'No results yet.') + '</div>';
+  return '<table class="tbl"><tbody>' + list.map(function(m){
+    var s = score(m);
+    return '<tr><td class="small muted nowrap">' + (upcoming ? esc(fmtDate(m.date)) + '<br>' + esc(m.time || '') : esc(m.stage || '')) + '</td>' +
+      '<td><span class="dot" style="background:' + esc(teamColor(m.homeId)) + '"></span>' + esc(teamName(m.homeId)) + '<br><span class="dot" style="background:' + esc(teamColor(m.awayId)) + '"></span>' + esc(teamName(m.awayId)) + '</td>' +
+      '<td class="num cond" style="font-size:18px">' + (upcoming ? '<a class="btn sm" href="#live/' + m.id + '">Score</a>' : '<b>' + esc(s.hT) + '<br>' + esc(s.aT) + '</b>') + '</td></tr>';
+  }).join('') + '</tbody></table>';
+}
+function vWelcome(){
+  return '<section class="strip" style="padding:28px"><div class="row" style="grid-template-columns:1fr;text-align:left;margin:0 0 12px"><div class="tm" style="font-size:clamp(30px,5vw,52px)">Run the whole tournament from one place.</div></div>' +
+    '<p style="position:relative;max-width:60ch;color:#CFE3DA;margin:0 0 18px">Register teams and players, collect entry fees, generate fixtures, score matches live, stream to YouTube or Facebook with a scoreboard overlay, track referees, trophies and every rufiyaa in and out.</p>' +
+    '<div class="btns"><button class="btn warn lg" onclick="editTournament()">Create tournament</button><button class="btn lg" onclick="loadDemo()">Load demo data</button></div></section>';
+}
+
+/* ---------------- tournaments ---------------- */
+function vTournaments(){
+  var ts = DB.tournaments.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+  var cur = getCur();
+  return head('Tournaments', 'Each tournament has its own sport, format, fees, teams and fixtures. The one selected at the top is the one you are working on.', '<button class="btn pri" onclick="editTournament()">Create tournament</button>') +
+    '<section class="panel flush"><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Sport</th><th>Format</th><th>Dates</th><th class="num">Teams</th><th class="num">Entry fee</th><th>Status</th><th></th></tr></thead><tbody>' +
+    (ts.length ? ts.map(function(t){
+      return '<tr class="' + (cur && cur.id === t.id ? 'hl' : '') + '"><td><b>' + esc(t.name) + '</b><div class="small muted">' + esc(t.category || '') + '</div></td><td>' + esc(t.sport) + '</td><td>' + esc(FORMAT_LABEL[t.format] || t.format) + '</td>' +
+        '<td class="small nowrap">' + esc(fmtDate(t.startDate)) + (t.endDate ? '<br>' + esc(fmtDate(t.endDate)) : '') + '</td><td class="num">' + tTeams(t.id).length + '</td><td class="num">' + money(t.entryFee) + '</td>' +
+        '<td><span class="badge ' + (t.status === 'Ongoing' ? 'b-live' : t.status === 'Completed' ? 'b-ok' : t.status === 'Registration open' ? 'b-blue' : '') + '">' + esc(t.status || 'Upcoming') + '</span></td>' +
+        '<td class="act">' + (cur && cur.id === t.id ? '<span class="small muted">Selected </span>' : '<button class="btn sm" onclick="setCur(\'' + t.id + '\')">Select</button> ') +
+        '<button class="btn sm" onclick="editTournament(\'' + t.id + '\')">Edit</button> <button class="btn sm dang" onclick="delTournament(\'' + t.id + '\')">Delete</button></td></tr>';
+    }).join('') : emptyRow(8, 'No tournaments yet', 'Create your first tournament to get started.')) +
+    '</tbody></table></div></section>';
+}
+var FORMAT_LABEL = { league:'League (round robin)', knockout:'Knockout', groups:'Groups + knockout' };
+function editTournament(id){
+  var t = byId('tournaments', id) || { sport:'Football', format:'league', status:'Registration open', entryFee:0, ptsWin:3, ptsDraw:1, ptsLoss:0, startDate:today(), maxPlayers:15, minPlayers:7, thirdPlace:true, oversLimit:10 };
+  var venues = (SETTINGS.venues || []);
+  var body =
+    fld({ n:'name', l:'Tournament name', v:t.name, req:true, full:true, ph:'e.g. Inter-office Futsal Cup 2026' }) +
+    fld({ n:'sport', l:'Sport', t:'select', v:t.sport, opts:Object.keys(SPORTS) }) +
+    fld({ n:'category', l:'Category / division', v:t.category, ph:"Men's open, Ladies, U-16..." }) +
+    fld({ n:'format', l:'Format', t:'select', v:t.format, opts:[{ v:'league', l:FORMAT_LABEL.league }, { v:'knockout', l:FORMAT_LABEL.knockout }, { v:'groups', l:FORMAT_LABEL.groups }] }) +
+    fld({ n:'status', l:'Status', t:'select', v:t.status, opts:['Upcoming','Registration open','Ongoing','Completed','Cancelled'] }) +
+    fld({ n:'startDate', l:'Start date', t:'date', v:t.startDate }) +
+    fld({ n:'endDate', l:'End date', t:'date', v:t.endDate }) +
+    fld({ n:'venue', l:'Main venue', v:t.venue, list:'venueList' }) + '<datalist id="venueList">' + venues.map(function(v){ return '<option value="' + esc(v) + '">'; }).join('') + '</datalist>' +
+    fld({ n:'entryFee', l:'Entry fee per team (' + SETTINGS.currency + ')', t:'number', v:t.entryFee, step:'0.01', min:0 }) +
+    fld({ n:'maxTeams', l:'Maximum teams', t:'number', v:t.maxTeams, min:2 }) +
+    fld({ n:'regDeadline', l:'Registration deadline', t:'date', v:t.regDeadline }) +
+    fld({ n:'minPlayers', l:'Minimum players per team', t:'number', v:t.minPlayers, min:1 }) +
+    fld({ n:'maxPlayers', l:'Maximum players per team', t:'number', v:t.maxPlayers, min:1 }) +
+    fld({ n:'ptsWin', l:'Points for a win', t:'number', v:t.ptsWin }) +
+    fld({ n:'ptsDraw', l:'Points for a draw', t:'number', v:t.ptsDraw }) +
+    fld({ n:'ptsLoss', l:'Points for a loss', t:'number', v:t.ptsLoss }) +
+    fld({ n:'matchMinutes', l:'Minutes per period', t:'number', v:t.matchMinutes, hint:'Leave blank to use the sport default.' }) +
+    fld({ n:'oversLimit', l:'Overs per innings (cricket)', t:'number', v:t.oversLimit }) +
+    fld({ n:'thirdPlace', l:'Play a 3rd-place match in knockouts', t:'check', v:t.thirdPlace, full:true }) +
+    fld({ n:'youtubeUrl', l:'YouTube live link', v:t.youtubeUrl, ph:'https://youtube.com/live/... or channel URL', full:true }) +
+    fld({ n:'facebookUrl', l:'Facebook live link', v:t.facebookUrl, ph:'https://facebook.com/.../videos/...', full:true }) +
+    fld({ n:'organizer', l:'Organizer contact', v:t.organizer }) +
+    fld({ n:'prizes', l:'Prizes', v:t.prizes, ph:'Champion MVR 10,000...' }) +
+    fld({ n:'rules', l:'Rules & notes', t:'textarea', v:t.rules, full:true });
+  openModal(id ? 'Edit tournament' : 'Create tournament', body, function(d){
+    var o = Object.assign(t, d);
+    save('tournaments', o);
+    if(!id){ setCur(o.id); toast('Tournament created'); location.hash = '#teams'; }
+    else toast('Tournament saved');
+  }, { wide:true, saveText:id ? 'Save tournament' : 'Create tournament' });
+}
+function delTournament(id){
+  var t = byId('tournaments', id);
+  if(!t || !confirm('Delete "' + t.name + '" and all its teams, players, fixtures, payments, awards and transactions? This cannot be undone.')) return;
+  ['teams','players','matches','payments','trophies','transactions'].forEach(function(c){
+    DB[c].filter(function(x){ return x.tournamentId === id; }).forEach(function(x){ removeDoc(c, x.id); });
+  });
+  removeDoc('tournaments', id);
+  if(CUR === id){ CUR = ''; localStorage.removeItem(CUR_KEY); }
+  toast('Tournament deleted');
+}
+
+/* ---------------- teams ---------------- */
+var TEAM_COLORS = ['#0E5E45','#D13A2B','#2463A8','#F2BE22','#7B3FA0','#E0782F','#1E8C93','#222B33','#C2185B','#6D8B2F','#8C5A3C','#5C6BC0'];
+function vTeams(){
+  var t = getCur(); if(!t) return noTournament();
+  var teams = tTeams(t.id), groups = groupsOf(t.id);
+  var full = t.maxTeams && teams.length >= t.maxTeams;
+  return head('Teams', teams.length + ' registered' + (t.maxTeams ? ' of ' + t.maxTeams + ' places' : '') + (t.regDeadline ? '. Registration closes ' + fmtDate(t.regDeadline) + '.' : '.'),
+    (t.format === 'groups' ? '<button class="btn" onclick="autoGroups()">Draw groups</button>' : '') + '<button class="btn" onclick="window.print()">Print</button><button class="btn pri" onclick="editTeam()"' + (full ? ' disabled title="Maximum teams reached"' : '') + '>Register team</button>') +
+    '<section class="panel flush"><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Team</th>' + (groups.length || t.format === 'groups' ? '<th>Group</th>' : '') + '<th>Captain / manager</th><th>Contact</th><th class="num">Players</th><th>Entry fee</th><th>Status</th><th></th></tr></thead><tbody>' +
+    (teams.length ? teams.map(function(x){
+      var pc = teamPlayers(x.id).length;
+      var warn = (t.minPlayers && pc < t.minPlayers) ? ' <span class="badge b-warn" title="Below minimum squad size">min ' + t.minPlayers + '</span>' : '';
+      return '<tr><td><span class="dot" style="background:' + esc(x.color) + '"></span><b>' + esc(x.name) + '</b> <span class="small muted">' + esc(x.short || '') + '</span></td>' +
+        (groups.length || t.format === 'groups' ? '<td>' + esc(x.group || '-') + '</td>' : '') +
+        '<td>' + esc(x.captain || '') + (x.manager ? '<div class="small muted">' + esc(x.manager) + '</div>' : '') + '</td><td class="small">' + esc(x.phone || '') + (x.email ? '<br>' + esc(x.email) : '') + '</td>' +
+        '<td class="num">' + pc + warn + '</td><td>' + feeBadge(x) + '</td><td><span class="badge ' + (x.status === 'Approved' ? 'b-ok' : x.status === 'Withdrawn' ? 'b-bad' : 'b-warn') + '">' + esc(x.status || 'Pending') + '</span></td>' +
+        '<td class="act"><a class="btn sm" href="#players/' + x.id + '">Players</a> <button class="btn sm" onclick="payFee(\'' + x.id + '\')">Take fee</button> <button class="btn sm" onclick="editTeam(\'' + x.id + '\')">Edit</button> <button class="btn sm dang" onclick="delTeam(\'' + x.id + '\')">Delete</button></td></tr>';
+    }).join('') : emptyRow(8, 'No teams registered', 'Use Register team to add the first one.')) +
+    '</tbody></table></div></section>';
+}
+function editTeam(id){
+  var t = getCur(); if(!t) return;
+  var used = tTeams(t.id).map(function(x){ return x.color; });
+  var x = byId('teams', id) || { status:'Approved', color:TEAM_COLORS.filter(function(c){ return used.indexOf(c) < 0; })[0] || TEAM_COLORS[0], fee:'' };
+  var body =
+    fld({ n:'name', l:'Team name', v:x.name, req:true }) +
+    fld({ n:'short', l:'Short name (3-4 letters)', v:x.short, ph:'e.g. BLU' }) +
+    fld({ n:'color', l:'Team colour', t:'color', v:x.color }) +
+    fld({ n:'group', l:'Group', v:x.group, ph:'A, B, C...' }) +
+    fld({ n:'captain', l:'Captain', v:x.captain }) +
+    fld({ n:'manager', l:'Manager / coach', v:x.manager }) +
+    fld({ n:'phone', l:'Contact phone', t:'tel', v:x.phone }) +
+    fld({ n:'email', l:'Email', t:'email', v:x.email }) +
+    fld({ n:'fee', l:'Entry fee (' + SETTINGS.currency + ')', t:'number', v:x.fee, step:'0.01', hint:'Blank uses the tournament fee of ' + money(t.entryFee) + '.' }) +
+    fld({ n:'status', l:'Registration status', t:'select', v:x.status, opts:['Pending','Approved','Withdrawn'] }) +
+    fld({ n:'notes', l:'Notes', t:'textarea', v:x.notes, full:true });
+  openModal(id ? 'Edit team' : 'Register team', body, function(d){
+    var dup = tTeams(t.id).some(function(o){ return o.id !== x.id && o.name.toLowerCase() === d.name.toLowerCase(); });
+    if(dup){ toast('A team with this name is already registered'); return false; }
+    d.short = (d.short || d.name.replace(/[^A-Za-z]/g, '').slice(0, 3)).toUpperCase();
+    d.group = (d.group || '').toUpperCase();
+    save('teams', Object.assign(x, d, { tournamentId:t.id }));
+    toast(id ? 'Team saved' : 'Team registered');
+  }, { saveText:id ? 'Save team' : 'Register team' });
+}
+function delTeam(id){
+  var x = byId('teams', id); if(!x) return;
+  var used = DB.matches.some(function(m){ return m.homeId === id || m.awayId === id; });
+  if(!confirm('Delete ' + x.name + ' and its players?' + (used ? ' This team is in fixtures; those matches will show TBD.' : ''))) return;
+  teamPlayers(id).forEach(function(p){ removeDoc('players', p.id); });
+  removeDoc('teams', id);
+}
+function autoGroups(){
+  var t = getCur(); var teams = tTeams(t.id).filter(function(x){ return x.status !== 'Withdrawn'; });
+  openModal('Draw groups', fld({ n:'n', l:'Number of groups', t:'number', v:Math.max(2, Math.round(teams.length / 4)), min:1, req:true }) +
+    '<p class="full small muted">Teams are shuffled at random and spread evenly into groups A, B, C... Existing group letters are replaced.</p>', function(d){
+    var n = Math.max(1, Math.min(num(d.n, 2), teams.length));
+    var sh = teams.slice().sort(function(){ return Math.random() - .5; });
+    sh.forEach(function(x, i){ x.group = String.fromCharCode(65 + (i % n)); save('teams', x); });
+    toast('Groups drawn');
+  }, { saveText:'Draw groups' });
+}
+
+/* ---------------- players ---------------- */
+function vPlayers(r){
+  var t = getCur(); if(!t) return noTournament();
+  var teams = tTeams(t.id), teamId = r.a || '';
+  var list = tPlayers(t.id).filter(function(p){ return !teamId || p.teamId === teamId; }).sort(function(a, b){ return teamName(a.teamId).localeCompare(teamName(b.teamId)) || num(a.number, 999) - num(b.number, 999); });
+  var st = playerStats(t.id), sp = SPORTS[t.sport] || SPORTS.Other;
+  var team = byId('teams', teamId);
+  return head(team ? esc(team.name) + ' squad' : 'Players', team ? teamPlayers(teamId).length + ' players' + (t.maxPlayers ? ' (limit ' + t.maxPlayers + ')' : '') + (team.captain ? '. Captain: ' + esc(team.captain) : '') : list.length + ' players across ' + teams.length + ' teams',
+    '<button class="btn" onclick="window.print()">Print team sheet</button><button class="btn" onclick="bulkPlayers(\'' + teamId + '\')"' + (teams.length ? '' : ' disabled') + '>Add many</button><button class="btn pri" onclick="editPlayer(null,\'' + teamId + '\')"' + (teams.length ? '' : ' disabled') + '>Add player</button>') +
+    '<div class="toolbar"><select onchange="location.hash=\'#players/\'+this.value" aria-label="Filter by team"><option value="">All teams</option>' + teams.map(function(x){ return '<option value="' + x.id + '"' + (x.id === teamId ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select></div>' +
+    '<section class="panel flush"><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th class="num">No.</th><th>Name</th>' + (teamId ? '' : '<th>Team</th>') + '<th>Position</th><th>ID card</th><th>Phone</th><th class="num">' + (sp.mode === 'goals' ? 'Goals' : 'Points') + '</th><th class="num">Cards</th><th></th></tr></thead><tbody>' +
+    (list.length ? list.map(function(p){
+      var s = st[p.id] || {};
+      return '<tr><td class="num cond" style="font-size:18px"><b>' + esc(p.number) + '</b></td><td><b>' + esc(p.name) + '</b>' + (p.captain ? ' <span class="badge b-blue">C</span>' : '') + '</td>' +
+        (teamId ? '' : '<td><span class="dot" style="background:' + esc(teamColor(p.teamId)) + '"></span>' + esc(teamName(p.teamId)) + '</td>') +
+        '<td>' + esc(p.position || '') + '</td><td class="small">' + esc(p.idCard || '') + '</td><td class="small">' + esc(p.phone || '') + '</td>' +
+        '<td class="num">' + (sp.mode === 'goals' ? (s.goals || 0) : (s.pts || 0)) + '</td><td class="num">' + (s.yc ? '<span class="badge b-warn">' + s.yc + 'Y</span> ' : '') + (s.rc ? '<span class="badge b-bad">' + s.rc + 'R</span>' : '') + '</td>' +
+        '<td class="act"><button class="btn sm" onclick="editPlayer(\'' + p.id + '\')">Edit</button> <button class="btn sm dang" onclick="delPlayer(\'' + p.id + '\')">Delete</button></td></tr>';
+    }).join('') : emptyRow(9, teams.length ? 'No players yet' : 'Register a team first', teams.length ? 'Add players one at a time or paste a whole squad with Add many.' : '')) +
+    '</tbody></table></div></section>';
+}
+function teamOpts(tid){ return tTeams(tid).map(function(x){ return { v:x.id, l:x.name }; }); }
+function editPlayer(id, teamId){
+  var t = getCur(); var sp = SPORTS[t.sport] || SPORTS.Other;
+  var p = byId('players', id) || { teamId:teamId || (tTeams(t.id)[0] || {}).id };
+  var body =
+    fld({ n:'name', l:'Full name', v:p.name, req:true }) +
+    fld({ n:'teamId', l:'Team', t:'select', v:p.teamId, opts:teamOpts(t.id), req:true }) +
+    fld({ n:'number', l:'Jersey number', t:'number', v:p.number, min:0 }) +
+    fld({ n:'position', l:'Position', v:p.position, list:'posList' }) + '<datalist id="posList">' + sp.positions.map(function(x){ return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>' +
+    fld({ n:'dob', l:'Date of birth', t:'date', v:p.dob }) +
+    fld({ n:'idCard', l:'ID card / passport no.', v:p.idCard }) +
+    fld({ n:'phone', l:'Phone', t:'tel', v:p.phone }) +
+    fld({ n:'captain', l:'Team captain', t:'check', v:p.captain });
+  openModal(id ? 'Edit player' : 'Add player', body, function(d){
+    var squad = teamPlayers(d.teamId).filter(function(o){ return o.id !== p.id; });
+    if(!id && t.maxPlayers && squad.length >= t.maxPlayers && !confirm('This team already has ' + squad.length + ' players (limit ' + t.maxPlayers + '). Add anyway?')) return false;
+    if(d.number !== '' && squad.some(function(o){ return String(o.number) === String(d.number); })){ toast('Jersey number ' + d.number + ' is already taken in this team'); return false; }
+    if(d.idCard && tPlayers(t.id).some(function(o){ return o.id !== p.id && o.idCard && o.idCard.toLowerCase() === d.idCard.toLowerCase(); })){ toast('This ID is already registered to another player in this tournament'); return false; }
+    save('players', Object.assign(p, d, { tournamentId:t.id }));
+    toast(id ? 'Player saved' : 'Player added');
+  }, { saveText:id ? 'Save player' : 'Add player' });
+}
+function bulkPlayers(teamId){
+  var t = getCur();
+  openModal('Add many players', fld({ n:'teamId', l:'Team', t:'select', v:teamId, opts:teamOpts(t.id), req:true, full:true }) +
+    fld({ n:'lines', l:'One player per line: number, name, position', t:'textarea', rows:10, full:true, req:true, ph:'1, Ahmed Ali, Goalkeeper\n7, Hassan Naeem, Forward\n10, Ibrahim Shiyam' }), function(d){
+    var n = 0;
+    d.lines.split('\n').forEach(function(line){
+      var parts = line.split(/[,\t]/).map(function(s){ return s.trim(); });
+      if(!parts[0] && !parts[1]) return;
+      var number = parts[0], name = parts[1], pos = parts[2] || '';
+      if(isNaN(parseInt(number, 10))){ pos = parts[1] || ''; name = parts[0]; number = ''; }
+      if(!name) return;
+      save('players', { teamId:d.teamId, tournamentId:t.id, name:name, number:number === '' ? '' : parseInt(number, 10), position:pos }); n++;
+    });
+    toast(n + ' players added');
+  }, { saveText:'Add players', wide:true });
+}
+function delPlayer(id){ var p = byId('players', id); if(p && confirm('Delete ' + p.name + '?')) removeDoc('players', id); }
+
+/* ---------------- referees ---------------- */
+function vReferees(){
+  var t = getCur();
+  var refs = DB.referees.slice().sort(function(a, b){ return a.name.localeCompare(b.name); });
+  var ms = t ? tMatches(t.id) : [];
+  var rows = refs.map(function(r){
+    var mine = ms.filter(function(m){ return (m.refereeIds || []).indexOf(r.id) >= 0; });
+    var done = mine.filter(function(m){ return m.status === 'finished'; }).length;
+    var earned = done * num(r.fee);
+    var paid = DB.transactions.filter(function(x){ return x.refereeId === r.id && (!t || x.tournamentId === t.id); }).reduce(function(s, x){ return s + num(x.amount); }, 0);
+    return { r:r, assigned:mine.length, done:done, earned:earned, paid:paid, due:earned - paid };
+  });
+  var upcoming = ms.filter(function(m){ return m.status === 'scheduled' && !m.bye; }).slice(0, 12);
+  return head('Referees & officials', 'Officials are shared across tournaments. Match counts and fees below are for ' + (t ? esc(t.name) : 'the selected tournament') + '.', '<button class="btn pri" onclick="editReferee()">Add official</button>') +
+    '<section class="panel flush"><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Role</th><th>Level</th><th>Phone</th><th class="num">Fee / match</th><th class="num">Assigned</th><th class="num">Officiated</th><th class="num">Earned</th><th class="num">Owed</th><th></th></tr></thead><tbody>' +
+    (rows.length ? rows.map(function(x){
+      var r = x.r;
+      return '<tr><td><b>' + esc(r.name) + '</b>' + (r.active === false ? ' <span class="badge">Inactive</span>' : '') + '</td><td>' + esc(r.role || '') + '</td><td>' + esc(r.grade || '') + '</td><td class="small">' + esc(r.phone || '') + '</td>' +
+        '<td class="num">' + money(r.fee) + '</td><td class="num">' + x.assigned + '</td><td class="num">' + x.done + '</td><td class="num">' + money(x.earned) + '</td><td class="num"><b style="color:' + (x.due > 0 ? 'var(--red)' : 'inherit') + '">' + money(x.due) + '</b></td>' +
+        '<td class="act">' + (t ? '<button class="btn sm" onclick="payReferee(\'' + r.id + '\',' + Math.max(0, x.due) + ')">Pay</button> ' : '') + '<button class="btn sm" onclick="editReferee(\'' + r.id + '\')">Edit</button> <button class="btn sm dang" onclick="delReferee(\'' + r.id + '\')">Delete</button></td></tr>';
+    }).join('') : emptyRow(10, 'No officials yet', 'Add referees, umpires, linesmen and table officials, then assign them from each fixture.')) +
+    '</tbody></table></div></section>' +
+    (t ? '<section class="panel flush"><header><h3>Upcoming duties</h3></header><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Match</th><th>Venue</th><th>Officials</th><th></th></tr></thead><tbody>' +
+      (upcoming.length ? upcoming.map(function(m){
+        return '<tr><td class="nowrap small">' + esc(fmtDate(m.date)) + ' ' + esc(m.time || '') + '</td><td>' + esc(teamName(m.homeId)) + ' v ' + esc(teamName(m.awayId)) + '</td><td>' + esc(m.venue || '') + '</td><td>' + (refNames(m) ? esc(refNames(m)) : '<span class="badge b-warn">Not assigned</span>') + '</td><td class="act"><button class="btn sm" onclick="editMatch(\'' + m.id + '\')">Assign</button></td></tr>';
+      }).join('') : emptyRow(5, 'No upcoming matches')) + '</tbody></table></div></section>' : '');
+}
+function editReferee(id){
+  var r = byId('referees', id) || { role:'Referee', active:true };
+  var body = fld({ n:'name', l:'Full name', v:r.name, req:true }) +
+    fld({ n:'role', l:'Role', t:'select', v:r.role, opts:['Referee','Assistant referee','Fourth official','Umpire','Third umpire','Table official','Scorer','Timekeeper','Line judge','Match commissioner'] }) +
+    fld({ n:'grade', l:'Level / grade', v:r.grade, ph:'FIFA, National, Class 1...' }) +
+    fld({ n:'sports', l:'Sports', v:r.sports, ph:'Football, Futsal' }) +
+    fld({ n:'phone', l:'Phone', t:'tel', v:r.phone }) +
+    fld({ n:'fee', l:'Fee per match (' + SETTINGS.currency + ')', t:'number', v:r.fee, step:'0.01', min:0 }) +
+    fld({ n:'active', l:'Available for assignment', t:'check', v:r.active !== false, full:true });
+  openModal(id ? 'Edit official' : 'Add official', body, function(d){ save('referees', Object.assign(r, d)); toast('Official saved'); }, { saveText:id ? 'Save official' : 'Add official' });
+}
+function delReferee(id){ var r = byId('referees', id); if(r && confirm('Delete ' + r.name + '? Their past assignments will show no name.')) removeDoc('referees', id); }
+function payReferee(id, due){
+  var t = getCur(), r = byId('referees', id);
+  openModal('Pay ' + r.name, fld({ n:'amount', l:'Amount (' + SETTINGS.currency + ')', t:'number', v:due, step:'0.01', min:0, req:true }) +
+    fld({ n:'date', l:'Date', t:'date', v:today(), req:true }) + fld({ n:'method', l:'Method', t:'select', v:'Cash', opts:PAY_METHODS }) + fld({ n:'ref', l:'Reference', v:'' }), function(d){
+    save('transactions', { tournamentId:t.id, type:'expense', category:'Referee fees', amount:d.amount, date:d.date, method:d.method, ref:d.ref, refereeId:id, desc:'Match fees: ' + r.name });
+    toast('Payment recorded under Referee fees');
+  }, { saveText:'Record payment' });
+}
+
+/* ---------------- entry fees ---------------- */
+function vFees(){
+  var t = getCur(); if(!t) return noTournament();
+  var teams = tTeams(t.id), due = 0, paid = 0;
+  teams.forEach(function(x){ due += feeDue(x); paid += feePaid(x); });
+  var pays = DB.payments.filter(function(p){ return p.tournamentId === t.id; }).sort(function(a, b){ return (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0); });
+  return head('Entry fees', 'Standard fee ' + money(t.entryFee) + ' per team. Payments here count as income automatically.', '') +
+    '<div class="statline"><div><b>' + money(due) + '</b><span>Total due</span></div><div><b>' + money(paid) + '</b><span>Collected</span><div class="bar"><i style="width:' + (due ? Math.min(100, paid / due * 100) : 0) + '%"></i></div></div><div><b style="color:' + (due - paid > 0 ? 'var(--red)' : 'inherit') + '">' + money(Math.max(0, due - paid)) + '</b><span>Outstanding</span></div><div><b>' + teams.filter(function(x){ return feeDue(x) > 0 && feePaid(x) >= feeDue(x); }).length + ' / ' + teams.length + '</b><span>Teams fully paid</span></div></div>' +
+    '<section class="panel flush"><header><h3>By team</h3></header><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Team</th><th class="num">Fee</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>' +
+    (teams.length ? teams.map(function(x){
+      var d = feeDue(x), p = feePaid(x);
+      return '<tr><td><span class="dot" style="background:' + esc(x.color) + '"></span><b>' + esc(x.name) + '</b></td><td class="num">' + money(d) + '</td><td class="num">' + money(p) + '</td><td class="num"><b>' + money(Math.max(0, d - p)) + '</b></td><td>' + feeBadge(x) + '</td><td class="act"><button class="btn sm pri" onclick="payFee(\'' + x.id + '\')"' + (p >= d && d > 0 ? '' : '') + '>Record payment</button></td></tr>';
+    }).join('') : emptyRow(6, 'No teams registered')) + '</tbody></table></div></section>' +
+    '<section class="panel flush"><header><h3>Payment history</h3></header><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Receipt</th><th>Date</th><th>Team</th><th>Method</th><th>Reference</th><th>Received by</th><th class="num">Amount</th><th></th></tr></thead><tbody>' +
+    (pays.length ? pays.map(function(p){
+      return '<tr><td class="small"><b>' + esc(p.receiptNo || '') + '</b></td><td class="nowrap">' + esc(fmtDate(p.date)) + '</td><td>' + esc(teamName(p.teamId)) + '</td><td>' + esc(p.method || '') + '</td><td class="small">' + esc(p.ref || '') + '</td><td class="small">' + esc(p.receivedBy || '') + '</td><td class="num"><b>' + money(p.amount) + '</b></td>' +
+        '<td class="act"><button class="btn sm" onclick="printReceipt(\'' + p.id + '\')">Receipt</button> <button class="btn sm dang" onclick="delPayment(\'' + p.id + '\')">Delete</button></td></tr>';
+    }).join('') : emptyRow(8, 'No payments yet')) + '</tbody></table></div></section>';
+}
+function payFee(teamId){
+  var x = byId('teams', teamId), t = byId('tournaments', x.tournamentId);
+  var bal = Math.max(0, feeDue(x) - feePaid(x));
+  openModal('Entry fee: ' + x.name, '<p class="full small muted" style="margin:0">Fee ' + money(feeDue(x)) + ', paid ' + money(feePaid(x)) + ', balance ' + money(bal) + '.</p>' +
+    fld({ n:'amount', l:'Amount received (' + SETTINGS.currency + ')', t:'number', v:bal || '', step:'0.01', min:0.01, req:true }) +
+    fld({ n:'date', l:'Date', t:'date', v:today(), req:true }) +
+    fld({ n:'method', l:'Method', t:'select', v:'Cash', opts:PAY_METHODS }) +
+    fld({ n:'ref', l:'Transfer / cheque reference', v:'' }) +
+    fld({ n:'receivedBy', l:'Received by', v:'' }) +
+    fld({ n:'notes', l:'Notes', v:'' }), function(d){
+    var n = DB.payments.filter(function(p){ return p.tournamentId === t.id; }).length + 1;
+    var p = save('payments', Object.assign(d, { teamId:teamId, tournamentId:t.id, receiptNo:'R-' + (t.name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'TMS') + '-' + String(n).padStart(4, '0') }));
+    toast('Payment recorded');
+    setTimeout(function(){ if(confirm('Print a receipt for this payment?')) printReceipt(p.id); }, 60);
+  }, { saveText:'Record payment' });
+}
+function delPayment(id){ if(confirm('Delete this payment record?')) removeDoc('payments', id); }
+function printReceipt(id){
+  var p = byId('payments', id); if(!p) return;
+  var x = byId('teams', p.teamId) || {}, t = byId('tournaments', p.tournamentId) || {};
+  var w = window.open('', '_blank', 'width=640,height=720');
+  if(!w){ toast('Allow pop-ups to print receipts'); return; }
+  w.document.write('<!DOCTYPE html><html><head><title>Receipt ' + esc(p.receiptNo) + '</title><style>body{font-family:Arial,sans-serif;padding:32px;color:#17222B}h1{margin:0 0 4px;font-size:24px}.box{border:2px solid #0E5E45;padding:24px;border-radius:6px}table{width:100%;border-collapse:collapse;margin-top:16px}td{padding:8px 0;border-bottom:1px solid #ddd}td:last-child{text-align:right;font-weight:bold}.amt{font-size:28px;color:#0E5E45;margin-top:16px}.sig{margin-top:48px;display:flex;justify-content:space-between}.sig div{border-top:1px solid #333;padding-top:6px;width:40%;font-size:13px}</style></head><body><div class="box">' +
+    '<h1>' + esc(SETTINGS.org) + '</h1><div>' + esc(t.name || '') + '</div><h2 style="margin:20px 0 0">Payment receipt</h2>' +
+    '<table><tr><td>Receipt no.</td><td>' + esc(p.receiptNo) + '</td></tr><tr><td>Date</td><td>' + esc(p.date) + '</td></tr><tr><td>Received from</td><td>' + esc(x.name || '') + (x.manager ? ' (' + esc(x.manager) + ')' : '') + '</td></tr><tr><td>For</td><td>Tournament entry fee</td></tr><tr><td>Method</td><td>' + esc(p.method || '') + (p.ref ? ', ref ' + esc(p.ref) : '') + '</td></tr><tr><td>Balance after payment</td><td>' + esc(money(Math.max(0, feeDue(x) - feePaid(x)))) + '</td></tr></table>' +
+    '<div class="amt"><b>' + esc(money(p.amount)) + '</b></div><div class="sig"><div>Received by: ' + esc(p.receivedBy || '') + '</div><div>Signature</div></div></div><script>window.onload=function(){window.print()}<\/script></body></html>');
+  w.document.close();
+}
+
+/* ---------------- income & expenses ---------------- */
+function vFinance(r){
+  var t = getCur(); if(!t) return noTournament();
+  var filter = r.a || 'all';
+  var L = ledger(t.id), tot = finTotals(t.id);
+  var cats = {};
+  L.forEach(function(x){ var k = x.type + '|' + x.category; cats[k] = (cats[k] || 0) + x.amount; });
+  var catRows = function(type){
+    var ks = Object.keys(cats).filter(function(k){ return k.indexOf(type + '|') === 0; }).sort(function(a, b){ return cats[b] - cats[a]; });
+    var max = ks.length ? cats[ks[0]] : 1;
+    return ks.length ? ks.map(function(k){ return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between"><span>' + esc(k.split('|')[1]) + '</span><b>' + money(cats[k]) + '</b></div><div class="bar' + (type === 'expense' ? ' red' : '') + '"><i style="width:' + (cats[k] / max * 100) + '%"></i></div></div>'; }).join('') : '<div class="muted small">Nothing recorded yet.</div>';
+  };
+  var shown = L.filter(function(x){ return filter === 'all' || x.type === filter; });
+  return head('Income & expenses', 'Entry fee payments and trophy costs flow in automatically. Add sponsorships, venue hire and everything else here.',
+    '<button class="btn" onclick="exportLedger()">Export CSV</button><button class="btn" onclick="editTxn(null,\'expense\')">Add expense</button><button class="btn pri" onclick="editTxn(null,\'income\')">Add income</button>') +
+    '<div class="statline"><div><b>' + money(tot.inc) + '</b><span>Income</span></div><div><b>' + money(tot.exp) + '</b><span>Expenses</span></div><div><b style="color:' + (tot.bal < 0 ? 'var(--red)' : 'var(--pitch)') + '">' + money(tot.bal) + '</b><span>' + (tot.bal < 0 ? 'Deficit' : 'Surplus') + '</span></div></div>' +
+    '<div class="cols" style="margin-bottom:18px"><section class="panel"><header><h3>Income by category</h3></header><div class="pb">' + catRows('income') + '</div></section><section class="panel"><header><h3>Expenses by category</h3></header><div class="pb">' + catRows('expense') + '</div></section></div>' +
+    '<div class="toolbar"><select onchange="location.hash=\'#finance/\'+this.value" aria-label="Filter"><option value="all">All transactions</option><option value="income"' + (filter === 'income' ? ' selected' : '') + '>Income only</option><option value="expense"' + (filter === 'expense' ? ' selected' : '') + '>Expenses only</option></select></div>' +
+    '<section class="panel flush"><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Method</th><th class="num">Income</th><th class="num">Expense</th><th></th></tr></thead><tbody>' +
+    (shown.length ? shown.map(function(x){
+      var act = x.src === 'txn' ? '<button class="btn sm" onclick="editTxn(\'' + x.id + '\')">Edit</button> <button class="btn sm dang" onclick="delTxn(\'' + x.id + '\')">Delete</button>' :
+        x.src === 'payment' ? '<a class="btn sm" href="#fees">Entry fees</a>' : '<a class="btn sm" href="#trophies">Trophies</a>';
+      return '<tr><td class="nowrap small">' + esc(fmtDate(x.date)) + '</td><td>' + esc(x.category) + '</td><td>' + esc(x.desc || '') + (x.ref ? ' <span class="small muted">(' + esc(x.ref) + ')</span>' : '') + '</td><td class="small">' + esc(x.method || '') + '</td>' +
+        '<td class="num">' + (x.type === 'income' ? money(x.amount) : '') + '</td><td class="num">' + (x.type === 'expense' ? money(x.amount) : '') + '</td><td class="act">' + act + '</td></tr>';
+    }).join('') : emptyRow(7, 'No transactions', 'Add income or expenses to build the tournament budget.')) + '</tbody></table></div></section>';
+}
+function editTxn(id, type){
+  var t = getCur(), x = byId('transactions', id) || { type:type, date:today(), method:'Cash' };
+  var cats = x.type === 'income' ? INCOME_CATS : EXPENSE_CATS;
+  var body = fld({ n:'category', l:'Category', t:'select', v:x.category, opts:cats }) +
+    fld({ n:'amount', l:'Amount (' + SETTINGS.currency + ')', t:'number', v:x.amount, step:'0.01', min:0, req:true }) +
+    fld({ n:'date', l:'Date', t:'date', v:x.date, req:true }) +
+    fld({ n:'method', l:'Method', t:'select', v:x.method, opts:PAY_METHODS }) +
+    fld({ n:'party', l:x.type === 'income' ? 'Received from' : 'Paid to', v:x.party }) +
+    fld({ n:'ref', l:'Reference / invoice no.', v:x.ref }) +
+    fld({ n:'desc', l:'Description', v:x.desc, full:true, req:true });
+  openModal((id ? 'Edit ' : 'Add ') + x.type, body, function(d){ save('transactions', Object.assign(x, d, { tournamentId:t.id })); toast((x.type === 'income' ? 'Income' : 'Expense') + ' saved'); }, { saveText:'Save ' + x.type });
+}
+function delTxn(id){ if(confirm('Delete this transaction?')) removeDoc('transactions', id); }
+function exportLedger(){
+  var t = getCur(), L = ledger(t.id);
+  var rows = [['Date','Type','Category','Description','Method','Reference','Amount']].concat(L.map(function(x){ return [x.date, x.type, x.category, x.desc || '', x.method || '', x.ref || '', x.amount]; }));
+  downloadFile(t.name.replace(/\W+/g, '_') + '_ledger.csv', rows.map(function(r){ return r.map(function(c){ return '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"'; }).join(','); }).join('\n'), 'text/csv');
+}
+function downloadFile(name, text, type){
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type:type })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------------- trophies & awards ---------------- */
+var AWARD_STATUS = ['Planned','Ordered','Received','Presented'];
+function vTrophies(){
+  var t = getCur(); if(!t) return noTournament();
+  var list = DB.trophies.filter(function(x){ return x.tournamentId === t.id; }).sort(function(a, b){ return num(a.order) - num(b.order) || (a.createdAt || 0) - (b.createdAt || 0); });
+  var sug = awardSuggestions(t);
+  var cost = list.reduce(function(s, x){ return s + num(x.cost); }, 0);
+  return head('Trophies & awards', 'Track every trophy and medal from order to presentation. Costs count as expenses once a trophy is ordered.',
+    (list.length ? '' : '<button class="btn" onclick="seedAwards()">Add standard awards</button>') + '<button class="btn pri" onclick="editTrophy()">Add award</button>') +
+    '<div class="statline"><div><b>' + list.length + '</b><span>Awards</span></div><div><b>' + list.filter(function(x){ return x.status === 'Presented'; }).length + '</b><span>Presented</span></div><div><b>' + list.filter(function(x){ return !x.recipientId; }).length + '</b><span>Winner not set</span></div><div><b>' + money(cost) + '</b><span>Total cost</span></div></div>' +
+    '<section class="panel flush"><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Award</th><th>Winner</th><th>Suggested</th><th class="num">Qty</th><th class="num">Cost</th><th>Status</th><th></th></tr></thead><tbody>' +
+    (list.length ? list.map(function(x){
+      var s = sug[x.title];
+      return '<tr><td><b>' + esc(x.title) + '</b><div class="small muted">' + esc(x.kind === 'player' ? 'Player award' : x.kind === 'team' ? 'Team award' : 'Award') + (x.supplier ? ', ' + esc(x.supplier) : '') + '</div></td>' +
+        '<td>' + (x.recipientId ? '<b>' + esc(recipientName(x.recipientId)) + '</b>' : '<span class="muted">Not set</span>') + '</td>' +
+        '<td class="small">' + (s && s.id !== x.recipientId ? esc(s.label) + ' <button class="btn sm" onclick="applyAward(\'' + x.id + '\',\'' + s.id + '\')">Use</button>' : '<span class="muted">-</span>') + '</td>' +
+        '<td class="num">' + esc(x.qty || 1) + '</td><td class="num">' + money(x.cost) + '</td>' +
+        '<td><select onchange="setAwardStatus(\'' + x.id + '\',this.value)" aria-label="Status" style="padding:4px 6px;border:1px solid var(--line);border-radius:5px">' + AWARD_STATUS.map(function(st){ return '<option' + (st === (x.status || 'Planned') ? ' selected' : '') + '>' + st + '</option>'; }).join('') + '</select></td>' +
+        '<td class="act"><button class="btn sm" onclick="editTrophy(\'' + x.id + '\')">Edit</button> <button class="btn sm dang" onclick="delTrophy(\'' + x.id + '\')">Delete</button></td></tr>';
+    }).join('') : emptyRow(7, 'No awards yet', 'Add the standard set (champion, runner-up, best player, top scorer...) or create your own.')) + '</tbody></table></div></section>';
+}
+function recipientName(id){ var tm = byId('teams', id); if(tm) return tm.name; var p = byId('players', id); return p ? p.name + ' (' + teamName(p.teamId) + ')' : ''; }
+function awardSuggestions(t){
+  var S = {}, ms = tMatches(t.id);
+  var fin = ms.filter(function(m){ return m.ko && m.stage === 'Final'; })[0];
+  if(fin && fin.status === 'finished'){ var w = winnerOf(fin), l = loserOf(fin); if(w) S['Champion'] = { id:w, label:teamName(w) }; if(l) S['Runner-up'] = { id:l, label:teamName(l) }; }
+  var tp = ms.filter(function(m){ return m.stage === '3rd place'; })[0];
+  if(tp && tp.status === 'finished' && winnerOf(tp)) S['Third place'] = { id:winnerOf(tp), label:teamName(winnerOf(tp)) };
+  if(!fin && t.format === 'league' && ms.length && ms.every(function(m){ return m.status === 'finished' || m.bye; })){
+    var st = standings(t); if(st[0]) S['Champion'] = { id:st[0].team.id, label:st[0].team.name }; if(st[1]) S['Runner-up'] = { id:st[1].team.id, label:st[1].team.name }; if(st[2]) S['Third place'] = { id:st[2].team.id, label:st[2].team.name };
+  }
+  var ps = playerStats(t.id), ids = Object.keys(ps).filter(function(k){ return byId('players', k); });
+  var top = ids.slice().sort(function(a, b){ return ps[b].pts - ps[a].pts; })[0];
+  if(top && ps[top].pts) S['Top scorer'] = { id:top, label:byId('players', top).name + ' (' + ps[top].pts + ')' };
+  var mvp = ids.slice().sort(function(a, b){ return ps[b].motm - ps[a].motm || ps[b].pts - ps[a].pts; })[0];
+  if(mvp && ps[mvp].motm) S['Best player'] = { id:mvp, label:byId('players', mvp).name + ' (' + ps[mvp].motm + ' MOTM)' };
+  var fair = tTeams(t.id).map(function(tm){ var c = 0; teamPlayers(tm.id).forEach(function(p){ var s = ps[p.id]; if(s) c += s.yc + s.rc * 3; }); return { tm:tm, c:c }; }).sort(function(a, b){ return a.c - b.c; })[0];
+  if(fair && ms.some(function(m){ return m.status === 'finished'; })) S['Fair play team'] = { id:fair.tm.id, label:fair.tm.name };
+  return S;
+}
+function applyAward(id, rid){ var x = byId('trophies', id); x.recipientId = rid; save('trophies', x); toast('Winner set'); }
+function setAwardStatus(id, st){ var x = byId('trophies', id); x.status = st; if(st !== 'Planned' && !x.date) x.date = today(); save('trophies', x); }
+function seedAwards(){
+  var t = getCur();
+  [['Champion','team'],['Runner-up','team'],['Third place','team'],['Best player','player'],['Top scorer','player'],['Best goalkeeper','player'],['Fair play team','team'],['Winners medals','team'],['Runners-up medals','team']].forEach(function(a, i){
+    save('trophies', { tournamentId:t.id, title:a[0], kind:a[1], qty:a[0].indexOf('medals') >= 0 ? (t.maxPlayers || 15) : 1, cost:0, status:'Planned', order:i });
+  });
+  toast('Standard awards added');
+}
+function editTrophy(id){
+  var t = getCur(), x = byId('trophies', id) || { kind:'team', qty:1, status:'Planned' };
+  var opts = [{ v:'', l:'Not decided yet' }, { group:'Teams', items:tTeams(t.id).map(function(tm){ return { v:tm.id, l:tm.name }; }) }, { group:'Players', items:tPlayers(t.id).map(function(p){ return { v:p.id, l:p.name + ' (' + teamName(p.teamId) + ')' }; }).sort(function(a, b){ return a.l.localeCompare(b.l); }) }];
+  var body = fld({ n:'title', l:'Award name', v:x.title, req:true }) +
+    fld({ n:'kind', l:'Type', t:'select', v:x.kind, opts:[{ v:'team', l:'Team award' }, { v:'player', l:'Player award' }, { v:'other', l:'Other' }] }) +
+    fld({ n:'recipientId', l:'Winner', t:'select', v:x.recipientId, opts:opts, full:true }) +
+    fld({ n:'qty', l:'Quantity', t:'number', v:x.qty, min:1 }) +
+    fld({ n:'cost', l:'Total cost (' + SETTINGS.currency + ')', t:'number', v:x.cost, step:'0.01', min:0 }) +
+    fld({ n:'status', l:'Status', t:'select', v:x.status, opts:AWARD_STATUS }) +
+    fld({ n:'date', l:'Order / payment date', t:'date', v:x.date }) +
+    fld({ n:'supplier', l:'Supplier', v:x.supplier }) +
+    fld({ n:'prize', l:'Cash prize / extras', v:x.prize }) +
+    fld({ n:'notes', l:'Engraving / notes', t:'textarea', v:x.notes, full:true });
+  openModal(id ? 'Edit award' : 'Add award', body, function(d){ save('trophies', Object.assign(x, d, { tournamentId:t.id })); toast('Award saved'); }, { saveText:'Save award' });
+}
+function delTrophy(id){ if(confirm('Delete this award?')) removeDoc('trophies', id); }
+
+/* ---------------- settings ---------------- */
+function vSettings(){
+  var cfg = localStorage.getItem(FB_KEY) || '';
+  return head('Settings', '', '') +
+    '<div class="cols"><section class="panel"><header><h3>Organisation</h3></header><div class="pb"><form class="grid2" onsubmit="saveOrg(event)">' +
+    fld({ n:'org', l:'Organisation name', v:SETTINGS.org, req:true, full:true }) +
+    fld({ n:'currency', l:'Currency', v:SETTINGS.currency, req:true }) +
+    fld({ n:'pin', l:'Admin PIN (optional)', t:'password', v:SETTINGS.pin, hint:'Locks admin pages on every device. Public scoreboards stay open.' }) +
+    fld({ n:'venues', l:'Venues (one per line)', t:'textarea', v:(SETTINGS.venues || []).join('\n'), full:true, rows:4 }) +
+    '<div class="full"><button class="btn pri">Save settings</button></div></form></div></section>' +
+    '<section class="panel"><header><h3>Cloud sync (Firebase)</h3><span class="badge ' + (MODE === 'firebase' ? 'b-ok' : '') + '">' + (MODE === 'firebase' ? 'Connected' : 'Off') + '</span></header><div class="pb">' +
+    '<p class="small muted" style="margin-top:0">Without cloud sync, data stays in this browser and scoreboards update only in other tabs on this device. Connect Firestore so scorers, officials and the public scoreboard stay in sync on any phone or screen.</p>' +
+    '<label class="fld"><span>Firebase config (JSON or the firebaseConfig object)</span><textarea id="fbcfg" rows="7" placeholder="{ apiKey: \'...\', authDomain: \'...\', projectId: \'...\' }">' + esc(cfg) + '</textarea></label>' +
+    '<div class="btns" style="margin-top:10px"><button class="btn pri" onclick="connectFb()">Save &amp; connect</button>' + (cfg ? '<button class="btn dang" onclick="disconnectFb()">Disconnect</button>' : '') + (MODE === 'firebase' ? '<button class="btn" onclick="uploadLocalToCloud()">Upload this device\'s data</button>' : '') + '</div>' +
+    '<p class="small muted">Collections used: tournaments, teams, players, matches, referees, trophies, transactions, payments, meta. Lock your Firestore security rules before going public.</p></div></section></div>' +
+    '<section class="panel" style="margin-top:18px"><header><h3>Backup & data</h3></header><div class="pb btns">' +
+    '<button class="btn" onclick="exportAll()">Download backup (JSON)</button><label class="btn">Restore backup<input type="file" accept=".json,application/json" hidden onchange="importAll(this.files[0])"></label>' +
+    '<button class="btn" onclick="loadDemo()">Load demo data</button><button class="btn dang" onclick="wipeAll()">Erase all data</button></div></section>';
+}
+function saveOrg(e){
+  e.preventDefault();
+  var d = formData(e.target);
+  SETTINGS.org = d.org; SETTINGS.currency = d.currency; SETTINGS.pin = d.pin;
+  SETTINGS.venues = d.venues.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+  if(d.pin) sessionStorage.setItem(PIN_OK, d.pin);
+  saveSettings(); toast('Settings saved');
+}
+function parseCfg(txt){
+  txt = txt.trim().replace(/^[^{]*/, '').replace(/;?\s*$/, '');
+  try { return JSON.parse(txt); } catch(e){}
+  try { return (new Function('return (' + txt + ')'))(); } catch(e){ return null; }
+}
+function connectFb(){
+  var txt = $('#fbcfg').value, cfg = parseCfg(txt);
+  if(!cfg || !cfg.projectId){ toast('That config is missing projectId. Paste the firebaseConfig object from the Firebase console.'); return; }
+  localStorage.setItem(FB_KEY, JSON.stringify(cfg));
+  toast('Connecting...');
+  setTimeout(function(){ location.reload(); }, 400);
+}
+function disconnectFb(){ if(!confirm('Disconnect cloud sync on this device? Data on Firebase is kept.')) return; localStorage.removeItem(FB_KEY); location.reload(); }
+function exportAll(){ downloadFile('tournament_backup_' + today() + '.json', JSON.stringify({ app:'tournament-office', version:1, exportedAt:new Date().toISOString(), settings:SETTINGS, db:DB }, null, 1), 'application/json'); }
+function importAll(file){
+  if(!file) return;
+  var rd = new FileReader();
+  rd.onload = function(){
+    try {
+      var d = JSON.parse(rd.result);
+      if(!d.db) throw new Error('Not a backup file');
+      if(!confirm('Restore this backup? Records with matching IDs are replaced; other records are kept.')) return;
+      Object.assign(SETTINGS, d.settings || {}); saveSettings();
+      COLS.forEach(function(c){ (d.db[c] || []).forEach(function(o){ save(c, o); }); });
+      toast('Backup restored');
+    } catch(e){ toast('Could not read file: ' + e.message); }
+  };
+  rd.readAsText(file);
+}
+function wipeAll(){
+  if(!confirm('Erase ALL tournaments, teams, players, matches and money records' + (MODE === 'firebase' ? ' from Firebase' : ' on this device') + '?')) return;
+  if(prompt('Type ERASE to confirm') !== 'ERASE') return;
+  COLS.forEach(function(c){ DB[c].slice().forEach(function(x){ removeDoc(c, x.id); }); });
+  CUR = ''; localStorage.removeItem(CUR_KEY); toast('All data erased');
+}
+function vLock(){
+  return '<div class="lock"><h1>Admin locked</h1><p class="muted">Enter the admin PIN to manage tournaments.</p><form onsubmit="unlock(event)"><input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password" aria-label="Admin PIN" autofocus><button class="btn pri lg" style="width:100%">Unlock</button></form><p class="small"><a href="#board">Open the public scoreboard</a></p></div>';
+}
+function unlock(e){ e.preventDefault(); if($('#pinIn').value === String(SETTINGS.pin)){ sessionStorage.setItem(PIN_OK, String(SETTINGS.pin)); render(); } else { toast('Wrong PIN'); $('#pinIn').value = ''; } }
+</script>
+<script>
+/* ---------------- fixtures ---------------- */
+function vMatches(r){
+  var t = getCur(); if(!t) return noTournament();
+  var filter = r.a || 'all';
+  var all = tMatches(t.id);
+  var ms = all.filter(function(m){ return filter === 'all' || (filter === 'live' ? isLive(m) : m.status === filter); });
+  var hasKO = all.some(function(m){ return m.ko; }), hasGroupStage = all.some(function(m){ return !m.ko && /^Group/.test(m.stage || ''); });
+  var acts = '<button class="btn" onclick="window.print()">Print</button><button class="btn" onclick="editMatch()">Add match</button>';
+  if(hasKO) acts += '<button class="btn warn" onclick="nextKO()">Next knockout round</button>';
+  else if(t.format === 'groups' && hasGroupStage) acts += '<button class="btn warn" onclick="groupsToKO()">Start knockout stage</button>';
+  acts += '<button class="btn pri" onclick="genFixtures()">Generate fixtures</button>';
+  var byDate = {};
+  ms.forEach(function(m){ var k = m.date || 'Unscheduled'; (byDate[k] = byDate[k] || []).push(m); });
+  var body = Object.keys(byDate).sort().map(function(d){
+    return '<tr><td colspan="8" style="background:var(--pitch-l);font-weight:700">' + esc(d === 'Unscheduled' ? 'Date to be set' : fmtDate(d)) + '</td></tr>' + byDate[d].map(fixtureRow).join('');
+  }).join('');
+  return head('Fixtures', all.filter(function(m){ return !m.bye; }).length + ' matches. ' + esc(FORMAT_LABEL[t.format] || ''), acts) +
+    '<div class="toolbar"><select onchange="location.hash=\'#matches/\'+this.value" aria-label="Filter by status">' + [['all','All matches'],['scheduled','Scheduled'],['live','Live'],['finished','Finished'],['postponed','Postponed']].map(function(o){ return '<option value="' + o[0] + '"' + (filter === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+    '<section class="panel flush"><div class="pb tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Stage</th><th class="right">Home</th><th style="text-align:center">Score</th><th>Away</th><th>Venue / officials</th><th>Status</th><th></th></tr></thead><tbody>' +
+    (ms.length ? body : emptyRow(8, 'No fixtures', tTeams(t.id).length >= 2 ? 'Use Generate fixtures to build the schedule automatically, or add matches one by one.' : 'Register at least two teams first.')) +
+    '</tbody></table></div></section>';
+}
+function fixtureRow(m){
+  var s = score(m), played = m.status !== 'scheduled' && !m.bye;
+  var w = winnerOf(m);
+  return '<tr><td class="nowrap">' + esc(m.time || '') + '</td><td class="small">' + esc(m.stage || '') + '</td>' +
+    '<td class="right"' + (w && w === m.homeId ? ' style="font-weight:700"' : '') + '>' + esc(teamName(m.homeId)) + ' <span class="dot" style="background:' + esc(teamColor(m.homeId)) + ';margin:0 0 0 6px"></span></td>' +
+    '<td class="cond nowrap" style="text-align:center;font-size:20px;font-weight:700">' + (m.bye ? '' : played ? esc(s.hT) + ' - ' + esc(s.aT) : '<span class="muted" style="font-size:15px">v</span>') + (m.pens ? '<div class="small muted" style="font-family:var(--f-body)">pens ' + m.pens.h + '-' + m.pens.a + '</div>' : '') + '</td>' +
+    '<td' + (w && w === m.awayId ? ' style="font-weight:700"' : '') + '><span class="dot" style="background:' + esc(teamColor(m.awayId)) + '"></span>' + esc(teamName(m.awayId)) + '</td>' +
+    '<td class="small">' + esc(m.venue || '') + (m.bye ? '' : '<div class="muted">' + (refNames(m) ? esc(refNames(m)) : 'No officials assigned') + '</div>') + '</td><td>' + statusBadge(m) + '</td>' +
+    '<td class="act">' + (m.bye ? '<button class="btn sm dang" onclick="delMatch(\'' + m.id + '\')">Remove</button>' : '<a class="btn sm' + (isLive(m) ? ' warn' : '') + '" href="#live/' + m.id + '">Score</a> <button class="btn sm" onclick="editMatch(\'' + m.id + '\')">Edit</button> <button class="btn sm dang" onclick="delMatch(\'' + m.id + '\')">Delete</button>') + '</td></tr>';
+}
+function editMatch(id){
+  var t = getCur(), m = byId('matches', id) || { status:'scheduled', date:today(), venue:t.venue || (SETTINGS.venues || [])[0] || '', stage:t.format === 'knockout' ? 'Knockout' : 'League', events:[] };
+  var tOpts = [{ v:'', l:'TBD' }].concat(teamOpts(t.id));
+  var refs = DB.referees.filter(function(r){ return r.active !== false || (m.refereeIds || []).indexOf(r.id) >= 0; });
+  var body = fld({ n:'homeId', l:'Home team', t:'select', v:m.homeId, opts:tOpts }) +
+    fld({ n:'awayId', l:'Away team', t:'select', v:m.awayId, opts:tOpts }) +
+    fld({ n:'date', l:'Date', t:'date', v:m.date }) + fld({ n:'time', l:'Kick-off time', t:'time', v:m.time }) +
+    fld({ n:'venue', l:'Venue', v:m.venue, list:'venueList2' }) + '<datalist id="venueList2">' + (SETTINGS.venues || []).map(function(v){ return '<option value="' + esc(v) + '">'; }).join('') + '</datalist>' +
+    fld({ n:'stage', l:'Stage / round name', v:m.stage, ph:'League, Group A, Semi-final...' }) +
+    fld({ n:'status', l:'Status', t:'select', v:m.status, opts:[{ v:'scheduled', l:'Scheduled' }, { v:'live', l:'Live' }, { v:'break', l:'Break' }, { v:'finished', l:'Full time' }, { v:'postponed', l:'Postponed' }, { v:'cancelled', l:'Cancelled' }] }) +
+    fld({ n:'round', l:'Round number', t:'number', v:m.round, min:1 }) +
+    '<div class="fld full"><span>Officials</span><div class="chkgrid">' + (refs.length ? refs.map(function(r){ return '<label class="chk"><input type="checkbox" name="refereeIds" data-multi="1" value="' + r.id + '"' + ((m.refereeIds || []).indexOf(r.id) >= 0 ? ' checked' : '') + '> ' + esc(r.name) + ' <span class="small muted">' + esc(r.role || '') + '</span></label>'; }).join('') : '<span class="small muted">No officials yet. Add them under Referees.</span><input type="checkbox" name="refereeIds" data-multi="1" hidden>') + '</div></div>' +
+    fld({ n:'youtubeUrl', l:'YouTube live link for this match', v:m.youtubeUrl, full:true, hint:'Leave blank to use the tournament stream.' }) +
+    fld({ n:'facebookUrl', l:'Facebook live link for this match', v:m.facebookUrl, full:true }) +
+    fld({ n:'notes', l:'Notes', t:'textarea', v:m.notes, full:true });
+  openModal(id ? 'Edit match' : 'Add match', body, function(d){
+    if(d.homeId && d.homeId === d.awayId){ toast('Home and away must be different teams'); return false; }
+    var clash = d.date && d.time && DB.matches.filter(function(o){ return o.id !== m.id && !o.bye && o.date === d.date && o.time === d.time && (o.venue || '') === (d.venue || '') && o.status !== 'cancelled'; })[0];
+    if(clash && !confirm('Another match is already booked at ' + d.venue + ' on ' + d.date + ' ' + d.time + '. Save anyway?')) return false;
+    save('matches', Object.assign(m, d, { tournamentId:t.id }));
+    toast('Match saved');
+  }, { wide:true, saveText:id ? 'Save match' : 'Add match' });
+}
+function delMatch(id){ if(confirm('Delete this match and its scores?')) removeDoc('matches', id); }
+
+/* fixture generation */
+function roundRobin(ids){
+  var a = ids.slice(); if(a.length % 2) a.push(null);
+  var n = a.length, rounds = [];
+  for(var r = 0; r < n - 1; r++){
+    var pairs = [];
+    for(var i = 0; i < n / 2; i++){ var x = a[i], y = a[n - 1 - i]; if(x && y) pairs.push(r % 2 ? [y, x] : [x, y]); }
+    rounds.push(pairs);
+    a.splice(1, 0, a.pop());
+  }
+  return rounds;
+}
+function koRoundName(n){ return n === 2 ? 'Final' : n === 4 ? 'Semi-final' : n === 8 ? 'Quarter-final' : 'Round of ' + n; }
+function buildKO(tid, order, round){
+  var P = 1; while(P < order.length) P *= 2;
+  var slots = order.slice(); while(slots.length < P) slots.push(null);
+  var out = [];
+  for(var i = 0; i < P / 2; i++){
+    var a = slots[i], b = slots[P - 1 - i];
+    if(!a && !b) continue;
+    var m = { tournamentId:tid, ko:true, round:round, slot:i, stage:koRoundName(P), homeId:a || b, awayId:a && b ? b : '', status:'scheduled', events:[] };
+    if(!(a && b)){ m.bye = true; m.status = 'finished'; }
+    out.push(m);
+  }
+  return out;
+}
+function scheduleList(list, o){
+  var real = list.filter(function(m){ return !m.bye; }), per = Math.max(1, num(o.perDay, 4)), gap = num(o.gap, 60);
+  var st = (o.startTime || '16:00').split(':'), base = num(st[0]) * 60 + num(st[1]);
+  var venues = o.venue ? [o.venue] : [''];
+  real.forEach(function(m, k){
+    var day = Math.floor(k / per), slot = k % per, mins = base + slot * gap;
+    m.date = o.startDate ? addDays(o.startDate, day * Math.max(1, num(o.every, 1))) : '';
+    m.time = pad(Math.floor(mins / 60) % 24) + ':' + pad(mins % 60);
+    m.venue = venues[0];
+  });
+  list.filter(function(m){ return m.bye; }).forEach(function(m){ m.date = o.startDate || ''; m.time = ''; });
+}
+function genFixtures(){
+  var t = getCur(), teams = tTeams(t.id).filter(function(x){ return x.status !== 'Withdrawn'; });
+  if(teams.length < 2){ toast('Register at least two teams first'); return; }
+  var existing = tMatches(t.id);
+  var body = fld({ n:'format', l:'Format', t:'select', v:t.format, opts:[{ v:'league', l:FORMAT_LABEL.league }, { v:'knockout', l:FORMAT_LABEL.knockout }, { v:'groups', l:'Group stage (knockout comes after)' }] }) +
+    fld({ n:'legs', l:'Each pair meets', t:'select', v:'1', opts:[{ v:'1', l:'Once' }, { v:'2', l:'Twice (home and away)' }] }) +
+    fld({ n:'startDate', l:'First match day', t:'date', v:t.startDate || today(), req:true }) +
+    fld({ n:'startTime', l:'First kick-off', t:'time', v:'16:00', req:true }) +
+    fld({ n:'perDay', l:'Matches per day', t:'number', v:4, min:1, req:true }) +
+    fld({ n:'gap', l:'Minutes between kick-offs', t:'number', v:t.sport === 'Futsal' ? 50 : 60, min:5, req:true }) +
+    fld({ n:'every', l:'Days between match days', t:'number', v:1, min:1 }) +
+    fld({ n:'venue', l:'Venue', v:t.venue || (SETTINGS.venues || [])[0] || '', list:'venueList3' }) + '<datalist id="venueList3">' + (SETTINGS.venues || []).map(function(v){ return '<option value="' + esc(v) + '">'; }).join('') + '</datalist>' +
+    fld({ n:'seeded', l:'Knockout: keep registration order as seeding (otherwise random draw)', t:'check', v:false, full:true }) +
+    (existing.length ? fld({ n:'replace', l:'Delete the ' + existing.filter(function(m){ return m.status === 'scheduled' || m.bye; }).length + ' unplayed fixtures first (played matches are kept)', t:'check', v:true, full:true }) : '') +
+    '<p class="full small muted" style="margin:0">' + teams.length + ' teams. Group stage uses the group letters set on each team; use Draw groups on the Teams page first.</p>';
+  openModal('Generate fixtures', body, function(d){
+    if(d.replace) existing.filter(function(m){ return m.status === 'scheduled' || m.bye; }).forEach(function(m){ removeDoc('matches', m.id); });
+    var list = [];
+    if(d.format === 'league'){
+      var rr = roundRobin(shuffle(teams.map(function(x){ return x.id; })));
+      if(d.legs === '2') rr = rr.concat(rr.map(function(r){ return r.map(function(p){ return [p[1], p[0]]; }); }));
+      rr.forEach(function(r, i){ r.forEach(function(p){ list.push({ tournamentId:t.id, stage:'League', round:i + 1, homeId:p[0], awayId:p[1], status:'scheduled', events:[] }); }); });
+    } else if(d.format === 'groups'){
+      var gs = groupsOf(t.id);
+      if(!gs.length){ toast('Set group letters on teams first (Teams > Draw groups)'); return false; }
+      var perG = gs.map(function(g){ var rr2 = roundRobin(teams.filter(function(x){ return x.group === g; }).map(function(x){ return x.id; })); if(d.legs === '2') rr2 = rr2.concat(rr2.map(function(r){ return r.map(function(p){ return [p[1], p[0]]; }); })); return { g:g, rr:rr2 }; });
+      var maxR = Math.max.apply(null, perG.map(function(x){ return x.rr.length; }));
+      for(var r = 0; r < maxR; r++) perG.forEach(function(x){ (x.rr[r] || []).forEach(function(p){ list.push({ tournamentId:t.id, stage:'Group ' + x.g, round:r + 1, homeId:p[0], awayId:p[1], status:'scheduled', events:[] }); }); });
+    } else {
+      var order = teams.map(function(x){ return x.id; });
+      if(!d.seeded) order = shuffle(order);
+      list = buildKO(t.id, order, 1);
+    }
+    scheduleList(list, d);
+    list.forEach(function(m){ save('matches', m); });
+    if(t.format !== d.format){ t.format = d.format; save('tournaments', t); }
+    toast(list.filter(function(m){ return !m.bye; }).length + ' fixtures created');
+  }, { wide:true, saveText:'Generate fixtures' });
+}
+function shuffle(a){ a = a.slice(); for(var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+function nextKO(){
+  var t = getCur(), ko = tMatches(t.id).filter(function(m){ return m.ko && m.stage !== '3rd place'; });
+  if(!ko.length) return toast('No knockout matches yet');
+  var maxR = Math.max.apply(null, ko.map(function(m){ return num(m.round); }));
+  var cur = ko.filter(function(m){ return num(m.round) === maxR; }).sort(function(a, b){ return num(a.slot) - num(b.slot); });
+  if(cur.some(function(m){ return m.status !== 'finished'; })) return toast('Finish every ' + cur[0].stage + ' match first');
+  var winners = cur.map(winnerOf);
+  if(winners.some(function(w){ return !w; })) return toast('A drawn match needs a winner. Open it and finish with penalties or a chosen winner.');
+  if(winners.length === 1) return toast(teamName(winners[0]) + ' are champions');
+  var M = winners.length, order = [], next = [];
+  for(var i = 0; i < M / 2; i++){ next.push({ tournamentId:t.id, ko:true, round:maxR + 1, slot:i, stage:koRoundName(M), homeId:winners[i], awayId:winners[M - 1 - i], status:'scheduled', events:[] }); }
+  if(M === 4 && t.thirdPlace){
+    var losers = cur.map(loserOf).filter(Boolean);
+    if(losers.length === 2) next.push({ tournamentId:t.id, ko:true, round:maxR + 1, slot:99, stage:'3rd place', homeId:losers[0], awayId:losers[1], status:'scheduled', events:[] });
+  }
+  openModal('Create ' + koRoundName(M) + ' fixtures', '<p class="full" style="margin:0">' + next.map(function(m){ return esc(m.stage) + ': <b>' + esc(teamName(m.homeId)) + '</b> v <b>' + esc(teamName(m.awayId)) + '</b>'; }).join('<br>') + '</p>' +
+    fld({ n:'startDate', l:'Date', t:'date', v:addDays(cur[cur.length - 1].date || today(), 1), req:true }) + fld({ n:'startTime', l:'First kick-off', t:'time', v:'16:00', req:true }) +
+    fld({ n:'perDay', l:'Matches per day', t:'number', v:4, min:1 }) + fld({ n:'gap', l:'Minutes between kick-offs', t:'number', v:60, min:5 }) +
+    fld({ n:'venue', l:'Venue', v:cur[0].venue || t.venue || '' }), function(d){
+    next.sort(function(a, b){ return a.stage === '3rd place' ? -1 : b.stage === '3rd place' ? 1 : 0; });
+    scheduleList(next, d); next.forEach(function(m){ save('matches', m); }); toast(koRoundName(M) + ' fixtures created');
+  }, { saveText:'Create fixtures' });
+}
+function groupsToKO(){
+  var t = getCur(), gs = groupsOf(t.id);
+  var pending = tMatches(t.id).filter(function(m){ return !m.ko && /^Group/.test(m.stage || '') && m.status !== 'finished'; }).length;
+  openModal('Start knockout stage', (pending ? '<p class="full small" style="margin:0;color:var(--red)">' + pending + ' group matches are not finished yet.</p>' : '') +
+    fld({ n:'top', l:'Teams that qualify from each group', t:'number', v:2, min:1, req:true }) +
+    fld({ n:'startDate', l:'Date', t:'date', v:today(), req:true }) + fld({ n:'startTime', l:'First kick-off', t:'time', v:'16:00', req:true }) +
+    fld({ n:'perDay', l:'Matches per day', t:'number', v:4, min:1 }) + fld({ n:'gap', l:'Minutes between kick-offs', t:'number', v:60, min:5 }) +
+    fld({ n:'venue', l:'Venue', v:t.venue || '' }) +
+    '<p class="full small muted" style="margin:0">Group winners are seeded first, so A1 meets the lowest qualifier from another group.</p>', function(d){
+    var top = num(d.top, 2), order = [];
+    for(var k = 0; k < top; k++) gs.forEach(function(g){ var s = standings(t, g); if(s[k]) order.push(s[k].team.id); });
+    if(order.length < 2){ toast('Not enough qualified teams'); return false; }
+    var maxR = Math.max.apply(null, [0].concat(tMatches(t.id).map(function(m){ return num(m.round); })));
+    var list = buildKO(t.id, order, maxR + 1);
+    scheduleList(list, d); list.forEach(function(m){ save('matches', m); }); toast('Knockout stage created');
+  }, { saveText:'Create knockout fixtures' });
+}
+
+/* ---------------- live scoring console ---------------- */
+function vLive(r){
+  var t = getCur(); if(!t) return noTournament();
+  var m = byId('matches', r.a);
+  if(!m){
+    var ms = tMatches(t.id).filter(function(x){ return !x.bye && x.status !== 'cancelled'; });
+    var order = ms.filter(isLive).concat(ms.filter(function(x){ return x.status === 'scheduled'; }), ms.filter(function(x){ return x.status === 'finished'; }).reverse());
+    return head('Live scoring', 'Pick a match to open the scoring console. Every change shows instantly on the public scoreboard and stream overlay.', '') +
+      '<section class="panel flush"><div class="pb tbl-wrap"><table class="tbl"><tbody>' + (order.length ? order.slice(0, 40).map(function(x){ var s = score(x); return '<tr><td class="small nowrap">' + esc(fmtDate(x.date)) + ' ' + esc(x.time || '') + '</td><td class="small">' + esc(x.stage || '') + '</td><td><b>' + esc(teamName(x.homeId)) + '</b> v <b>' + esc(teamName(x.awayId)) + '</b></td><td class="cond" style="font-size:18px">' + (x.status === 'scheduled' ? '' : esc(s.hT) + ' - ' + esc(s.aT)) + '</td><td>' + statusBadge(x) + '</td><td class="act"><a class="btn sm ' + (isLive(x) ? 'warn' : 'pri') + '" href="#live/' + x.id + '">' + (x.status === 'finished' ? 'Review' : 'Open console') + '</a></td></tr>'; }).join('') : emptyRow(6, 'No fixtures yet', '<a href="#matches">Generate fixtures</a> first.')) + '</tbody></table></div></section>';
+  }
+  if(m.tournamentId !== t.id) { CUR = m.tournamentId; t = getCur(); }
+  var sp = sportOf(m), s = score(m), live = isLive(m), fin = m.status === 'finished';
+  var url = baseUrl();
+  var h = '<div class="page-head"><div><a href="#live" class="small noprint">All matches</a><h1>' + esc(teamName(m.homeId)) + ' v ' + esc(teamName(m.awayId)) + '</h1><p>' + esc([m.stage, m.venue, fmtDate(m.date) + ' ' + (m.time || '')].filter(Boolean).join(', ')) + (refNames(m) ? '. Officials: ' + esc(refNames(m)) : '') + '</p></div>' +
+    '<div class="btns">' + statusBadge(m) + '<a class="btn sm" href="#match/' + m.id + '" target="_blank" rel="noopener">Scoreboard</a><button class="btn sm" onclick="copyText(\'' + url + '#overlay/' + m.id + '\')">Copy overlay link</button><button class="btn sm" onclick="editMatch(\'' + m.id + '\')">Edit match</button></div></div>';
+
+  var clockHtml = sp.clock ? '<div class="clock" data-clock="' + m.id + '">' + fmtClock(clockSecs(m)) + '</div>' : '';
+  var subHtml = sp.mode === 'sets' ? '<div class="sub">Current: ' + s.cur.h + ' - ' + s.cur.a + (s.sub ? '<br>' + esc(s.sub) : '') + '</div>' : (s.sub ? '<div class="sub">' + esc(s.sub) + '</div>' : '');
+  h += '<div class="scorebox"><div class="tm"><i style="background:' + esc(teamColor(m.homeId)) + '"></i><h2>' + esc(teamName(m.homeId)) + '</h2><small>Home</small></div>' +
+    '<div class="sc"><b>' + esc(s.hT) + '</b><span class="sep">:</span><b>' + esc(s.aT) + '</b>' + clockHtml + '<div class="sub">' + esc(m.period || '') + '</div>' + subHtml + '</div>' +
+    '<div class="tm r"><i style="background:' + esc(teamColor(m.awayId)) + '"></i><h2>' + esc(teamName(m.awayId)) + '</h2><small>Away</small></div></div>';
+
+  // status & clock controls
+  h += '<div class="ctrl">';
+  if(m.status === 'scheduled' || m.status === 'postponed') h += '<button class="btn pri lg" onclick="setStatus(\'' + m.id + '\',\'live\')">Start match</button>';
+  if(m.status === 'live') h += '<button class="btn lg" onclick="setStatus(\'' + m.id + '\',\'break\')">Break / half-time</button>';
+  if(m.status === 'break') h += '<button class="btn pri lg" onclick="setStatus(\'' + m.id + '\',\'live\')">Resume play</button>';
+  if(live) h += '<button class="btn dang solid lg" onclick="finishMatch(\'' + m.id + '\')">Full time</button>';
+  if(fin) h += '<button class="btn" onclick="reopenMatch(\'' + m.id + '\')">Reopen match</button>';
+  if(sp.clock && !fin){
+    var running = m.clock && m.clock.running;
+    h += '<span style="width:12px"></span><button class="btn" onclick="clockToggle(\'' + m.id + '\')">' + (running ? 'Pause clock' : 'Start clock') + '</button><button class="btn" onclick="clockSet(\'' + m.id + '\')">Set clock</button>';
+  }
+  h += '<select onchange="setPeriod(\'' + m.id + '\',this.value)" aria-label="Period"><option value="">Period</option>' + sp.periods.map(function(p){ return '<option' + (m.period === p ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') + '</select>';
+  if(!fin && m.status !== 'postponed') h += '<button class="btn sm dang" onclick="setStatus(\'' + m.id + '\',\'postponed\')">Postpone</button>';
+  h += '</div>';
+
+  // per-side panels
+  h += '<div class="sides">' + sidePanel(m, 'home', sp) + sidePanel(m, 'away', sp) + '</div>';
+
+  // man of the match
+  var allPl = teamPlayers(m.homeId).concat(teamPlayers(m.awayId));
+  h += '<div class="ctrl"><label class="small muted" for="motmSel">Player of the match</label><select id="motmSel" onchange="setMotm(\'' + m.id + '\',this.value)"><option value="">Not chosen</option>' + allPl.map(function(p){ return '<option value="' + p.id + '"' + (m.motm === p.id ? ' selected' : '') + '>' + esc(p.name) + ' (' + esc(teamShort(p.teamId)) + ')</option>'; }).join('') + '</select></div>';
+
+  // commentary & timeline
+  var evs = (m.events || []).slice().reverse();
+  h += '<section class="panel flush" style="margin-top:6px"><header><h3>Commentary & timeline</h3><span class="small muted">' + evs.length + ' entries</span></header>' +
+    '<div class="comm-box"><textarea id="comm" data-keep placeholder="Write commentary... (Ctrl+Enter to post)" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key===\'Enter\'){postComment(\'' + m.id + '\')}"></textarea><button class="btn pri" onclick="postComment(\'' + m.id + '\')">Post</button></div>' +
+    '<div class="feed">' + (evs.length ? evs.map(function(e){ return evRow(e, m, true); }).join('') : '<div class="empty">Nothing yet. Goals, cards and commentary appear here and on the public scoreboard.</div>') + '</div></section>';
+  return h;
+}
+function sidePanel(m, side, sp){
+  var tid = side === 'home' ? m.homeId : m.awayId, players = teamPlayers(tid), dis = !tid;
+  var s = score(m);
+  var h = '<div class="side-p" style="--c:' + esc(teamColor(tid)) + '"><h3>' + esc(teamName(tid)) + '</h3>';
+  if(sp.mode === 'goals' || sp.mode === 'points'){
+    h += '<select id="pl-' + side + '" data-keep aria-label="Player"><option value="">Player (optional)</option>' + players.map(function(p){ return '<option value="' + p.id + '">' + (p.number !== '' && p.number != null ? '#' + esc(p.number) + ' ' : '') + esc(p.name) + '</option>'; }).join('') + '</select>';
+    h += '<div class="bigbtns">';
+    if(sp.mode === 'goals') h += '<button class="btn score" onclick="addEvent(\'' + m.id + '\',\'' + side + '\',\'Goal\',1)"' + (dis ? ' disabled' : '') + '>Goal</button><button class="btn" onclick="addEvent(\'' + m.id + '\',\'' + side + '\',\'Own goal\',1)">Own goal</button>';
+    else sp.pts.forEach(function(p){ h += '<button class="btn score" onclick="addEvent(\'' + m.id + '\',\'' + side + '\',\'Score\',' + p + ')"' + (dis ? ' disabled' : '') + '>+' + p + '</button>'; });
+    h += '<button class="btn" onclick="undoScore(\'' + m.id + '\',\'' + side + '\')">Undo last</button>';
+    sp.events.forEach(function(ev){ h += '<button class="btn" onclick="addEvent(\'' + m.id + '\',\'' + side + '\',\'' + esc(ev) + '\',0)">' + esc(ev) + '</button>'; });
+    h += '</div>';
+  } else if(sp.mode === 'sets'){
+    var k = side === 'home' ? 'h' : 'a';
+    h += '<div class="set-now">' + s.cur[k] + '</div><div class="bigbtns"><button class="btn score" onclick="setPoint(\'' + m.id + '\',\'' + side + '\',1)">+1 point</button><button class="btn" onclick="setPoint(\'' + m.id + '\',\'' + side + '\',-1)">-1</button>';
+    sp.events.forEach(function(ev){ h += '<button class="btn" onclick="addEvent(\'' + m.id + '\',\'' + side + '\',\'' + esc(ev) + '\',0)">' + esc(ev) + '</button>'; });
+    h += '</div>' + (side === 'away' ? '<div class="btns" style="margin-top:10px"><button class="btn warn" onclick="endSet(\'' + m.id + '\')">End set / game</button></div>' : '');
+  } else if(sp.mode === 'cricket'){
+    var c = m.cricket || { batting:'home' }, bat = c.batting === side, inn = (c[side] || { r:0, w:0, b:0 });
+    var lim = num((byId('tournaments', m.tournamentId) || {}).oversLimit);
+    h += '<div class="set-now">' + inn.r + '/' + inn.w + ' <span style="font-size:24px">(' + overs(inn.b) + (lim ? '/' + lim : '') + ')</span></div>';
+    if(bat){
+      h += '<div class="small muted" style="margin-bottom:8px">Batting</div><div class="bigbtns">' + [0,1,2,3,4,6].map(function(n){ return '<button class="btn score" onclick="crk(\'' + m.id + '\',' + n + ')">' + n + '</button>'; }).join('') +
+        '<button class="btn dang solid" onclick="crk(\'' + m.id + '\',\'W\')">Wicket</button><button class="btn" onclick="crk(\'' + m.id + '\',\'Wd\')">Wide</button><button class="btn" onclick="crk(\'' + m.id + '\',\'Nb\')">No ball</button><button class="btn" onclick="crk(\'' + m.id + '\',\'B\')">Bye</button><button class="btn" onclick="crkUndo(\'' + m.id + '\')">Undo</button></div>';
+    } else h += '<div class="small muted">Fielding</div><div class="btns" style="margin-top:8px"><button class="btn" onclick="crkSwitch(\'' + m.id + '\')">Switch innings: ' + esc(teamName(tid)) + ' to bat</button></div>';
+  }
+  return h + '</div>';
+}
+function evRow(e, m, admin){
+  var k = e.type === 'Goal' || e.type === 'Own goal' || e.pts ? 'k-goal' : e.type === 'Yellow card' ? 'k-yc' : e.type === 'Red card' ? 'k-rc' : e.type === 'Comment' ? 'k-com' : '';
+  var mn = e.min ? e.min + '\'' : (e.type === 'Comment' ? '' : '');
+  return '<div class="ev ' + k + '"><div class="mn">' + esc(mn) + '</div><div class="t">' + (e.type !== 'Comment' ? '<b>' + esc(e.type) + '</b> ' : '') + esc(e.text || '') + (e.period ? ' <span class="small muted">' + esc(e.period) + '</span>' : '') + '</div>' +
+    (admin ? '<button class="btn sm dang" onclick="delEvent(\'' + m.id + '\',\'' + e.id + '\')" aria-label="Delete entry">Delete</button>' : '<span></span>') + '</div>';
+}
+function autoText(m, e){
+  var tm = teamName(e.side === 'home' ? m.homeId : m.awayId), pl = e.playerId ? byId('players', e.playerId) : null, pn = pl ? pl.name + (pl.number !== '' && pl.number != null ? ' (#' + pl.number + ')' : '') : '';
+  var s = score(m);
+  if(e.type === 'Goal') return (pn ? pn + ' scores for ' : 'Goal for ') + tm + '. ' + teamShort(m.homeId) + ' ' + s.h + '-' + s.a + ' ' + teamShort(m.awayId);
+  if(e.type === 'Own goal') return (pn ? pn + ' puts it into his own net. ' : '') + 'Credited to ' + tm + '. ' + teamShort(m.homeId) + ' ' + s.h + '-' + s.a + ' ' + teamShort(m.awayId);
+  if(e.type === 'Score') return '+' + e.pts + ' ' + tm + (pn ? ', ' + pn : '') + '. ' + s.h + '-' + s.a;
+  return tm + (pn ? ', ' + pn : '');
+}
+function touchLive(m){ if(m.status === 'scheduled'){ m.status = 'live'; } }
+function addEvent(mid, side, type, pts){
+  var m = byId('matches', mid); if(!m) return;
+  var sel = document.getElementById('pl-' + side);
+  var e = { id:uid(), at:Date.now(), min:minuteOf(m), period:m.period || '', type:type, side:side, playerId:sel ? sel.value : '', pts:pts || 0 };
+  if(type === 'Own goal') e.side = side === 'home' ? 'away' : 'home';
+  m.events = (m.events || []).concat(e);
+  e.text = autoText(m, e);
+  touchLive(m);
+  if(sel) sel.value = '';
+  save('matches', m);
+  var tnm = teamName(e.side === 'home' ? m.homeId : m.awayId);
+  if(pts) toast(type === 'Score' ? '+' + pts + ' ' + tnm : type + ': ' + tnm);
+}
+function undoScore(mid, side){
+  var m = byId('matches', mid), ev = m.events || [];
+  for(var i = ev.length - 1; i >= 0; i--){ if(ev[i].pts && ev[i].side === side){ ev.splice(i, 1); m.events = ev; save('matches', m); toast('Last score removed'); return; } }
+  toast('No score to undo for ' + teamName(side === 'home' ? m.homeId : m.awayId));
+}
+function delEvent(mid, eid){ var m = byId('matches', mid); if(!confirm('Delete this entry?')) return; m.events = (m.events || []).filter(function(e){ return e.id !== eid; }); save('matches', m); }
+function postComment(mid){
+  var el = document.getElementById('comm'), txt = el ? el.value.trim() : '';
+  if(!txt) return;
+  var m = byId('matches', mid);
+  m.events = (m.events || []).concat({ id:uid(), at:Date.now(), min:minuteOf(m), period:m.period || '', type:'Comment', text:txt });
+  el.value = '';
+  save('matches', m);
+}
+function sysEvent(m, text){ m.events = (m.events || []).concat({ id:uid(), at:Date.now(), min:minuteOf(m), period:m.period || '', type:'Comment', text:text }); }
+function clockToggle(mid){
+  var m = byId('matches', mid), c = m.clock || {};
+  if(c.running) m.clock = { running:false, base:clockSecs(m) };
+  else m.clock = { running:true, base:num(c.base), startedAt:Date.now() };
+  save('matches', m);
+}
+function clockSet(mid){
+  var m = byId('matches', mid);
+  var v = prompt('Set match clock (minutes, or mm:ss)', fmtClock(clockSecs(m)));
+  if(v == null) return;
+  var p = String(v).split(':'), secs = p.length > 1 ? num(p[0]) * 60 + num(p[1]) : num(p[0]) * 60;
+  m.clock = { running:!!(m.clock && m.clock.running), base:secs, startedAt:Date.now() };
+  save('matches', m);
+}
+function setPeriod(mid, p){
+  var m = byId('matches', mid); m.period = p;
+  var t = byId('tournaments', m.tournamentId), sp = sportOf(m), per = num(t && t.matchMinutes) || sp.dur || 0;
+  var idx = sp.periods.filter(function(x){ return !/time$|break|Interval|Penalties|Shoot/i.test(x) || /Extra time/.test(x); }).indexOf(p);
+  if(sp.clock && per && idx > 0 && confirm('Set the clock to ' + (idx * per) + ':00 for ' + p + '?')) m.clock = { running:false, base:idx * per * 60 };
+  if(p) sysEvent(m, p + ' begins');
+  save('matches', m);
+}
+function setStatus(mid, st){
+  var m = byId('matches', mid), sp = sportOf(m);
+  if(st === 'live'){
+    var first = m.status === 'scheduled' || m.status === 'postponed';
+    m.status = 'live';
+    if(first && !m.period) m.period = sp.periods[0];
+    if(sp.clock && !(m.clock && m.clock.running)) m.clock = { running:true, base:m.clock ? num(m.clock.base) : 0, startedAt:Date.now() };
+    sysEvent(m, first ? 'Kick-off! ' + teamName(m.homeId) + ' v ' + teamName(m.awayId) : 'Play resumes');
+  } else if(st === 'break'){
+    m.status = 'break';
+    if(sp.clock) m.clock = { running:false, base:clockSecs(m) };
+    var s = score(m); sysEvent(m, 'Break. ' + teamShort(m.homeId) + ' ' + s.hT + '-' + s.aT + ' ' + teamShort(m.awayId));
+  } else if(st === 'postponed'){
+    if(!confirm('Mark this match as postponed?')) return;
+    m.status = 'postponed'; if(m.clock) m.clock = { running:false, base:clockSecs(m) };
+    sysEvent(m, 'Match postponed');
+  }
+  save('matches', m);
+}
+function finishMatch(mid){
+  var m = byId('matches', mid), sp = sportOf(m);
+  if(!confirm('End the match? The result will count in standings.')) return;
+  if(m.clock) m.clock = { running:false, base:clockSecs(m) };
+  if(sp.mode === 'sets' && m.sets && m.sets.length > 1){ var last = m.sets[m.sets.length - 1]; if(!last.h && !last.a) m.sets.pop(); }
+  m.status = 'finished';
+  var s = score(m);
+  var done = function(){ var s2 = score(m); sysEvent(m, 'Full time. ' + teamName(m.homeId) + ' ' + s2.hT + '-' + s2.aT + ' ' + teamName(m.awayId) + (m.pens ? ' (penalties ' + m.pens.h + '-' + m.pens.a + ')' : '') + (winnerOf(m) ? '. ' + teamName(winnerOf(m)) + ' win.' : '. Draw.')); save('matches', m); };
+  if(m.ko && s.h === s.a){
+    openModal('Knockout match is level', '<p class="full" style="margin:0">A knockout match needs a winner. Enter the penalty shoot-out score or choose the winner.</p>' +
+      fld({ n:'ph', l:teamName(m.homeId) + ' penalties', t:'number', v:'', min:0 }) + fld({ n:'pa', l:teamName(m.awayId) + ' penalties', t:'number', v:'', min:0 }) +
+      fld({ n:'winnerId', l:'Winner', t:'select', v:'', opts:[{ v:'', l:'Decide from penalties' }, { v:m.homeId, l:teamName(m.homeId) }, { v:m.awayId, l:teamName(m.awayId) }], full:true }), function(d){
+      if(d.ph !== '' && d.pa !== ''){ m.pens = { h:num(d.ph), a:num(d.pa) }; if(!d.winnerId && m.pens.h !== m.pens.a) d.winnerId = m.pens.h > m.pens.a ? m.homeId : m.awayId; }
+      if(!d.winnerId){ toast('Enter a decisive shoot-out or pick the winner'); return false; }
+      m.winnerId = d.winnerId; done();
+    }, { saveText:'Confirm result' });
+    return;
+  }
+  done();
+}
+function reopenMatch(mid){ var m = byId('matches', mid); if(!confirm('Reopen this match for scoring?')) return; m.status = 'live'; delete m.winnerId; delete m.pens; save('matches', m); }
+function setMotm(mid, pid){ var m = byId('matches', mid); m.motm = pid; if(pid) sysEvent(m, 'Player of the match: ' + playerName(pid)); save('matches', m); }
+function setPoint(mid, side, d){
+  var m = byId('matches', mid); m.sets = m.sets && m.sets.length ? m.sets : [{ h:0, a:0 }];
+  var c = m.sets[m.sets.length - 1], k = side === 'home' ? 'h' : 'a';
+  c[k] = Math.max(0, c[k] + d); touchLive(m); save('matches', m);
+}
+function endSet(mid){
+  var m = byId('matches', mid); m.sets = m.sets && m.sets.length ? m.sets : [{ h:0, a:0 }];
+  var c = m.sets[m.sets.length - 1];
+  if(c.h === c.a){ toast('A set cannot end level'); return; }
+  sysEvent(m, 'Set ' + m.sets.length + ' to ' + teamName(c.h > c.a ? m.homeId : m.awayId) + ', ' + c.h + '-' + c.a);
+  m.sets.push({ h:0, a:0 });
+  var sp = sportOf(m), periods = sp.periods; m.period = periods[m.sets.length - 1] || ('Set ' + m.sets.length);
+  var s = score(m), need = Math.ceil((sp.bestOf || 3) / 2);
+  save('matches', m);
+  if(s.h >= need || s.a >= need) setTimeout(function(){ finishMatch(mid); }, 100);
+}
+function crk(mid, kind){
+  var m = byId('matches', mid);
+  var c = m.cricket = m.cricket || { batting:'home', home:{ r:0, w:0, b:0 }, away:{ r:0, w:0, b:0 }, log:[] };
+  var s = c[c.batting]; c.log = c.log || [];
+  c.log.push({ side:c.batting, r:s.r, w:s.w, b:s.b });
+  if(c.log.length > 400) c.log.shift();
+  if(typeof kind === 'number'){ s.r += kind; s.b++; if(kind === 4 || kind === 6) sysEvent(m, (kind === 6 ? 'SIX' : 'FOUR') + ' for ' + teamName(c.batting === 'home' ? m.homeId : m.awayId) + '. ' + s.r + '/' + s.w); }
+  else if(kind === 'W'){ s.w++; s.b++; sysEvent(m, 'Wicket! ' + teamName(c.batting === 'home' ? m.homeId : m.awayId) + ' ' + s.r + '/' + s.w + ' (' + overs(s.b) + ')'); }
+  else if(kind === 'Wd' || kind === 'Nb'){ s.r += 1; }
+  else if(kind === 'B'){ s.r += 1; s.b++; }
+  touchLive(m); save('matches', m);
+}
+function crkUndo(mid){ var m = byId('matches', mid), c = m.cricket; if(!c || !c.log || !c.log.length) return toast('Nothing to undo'); var p = c.log.pop(); c[p.side] = { r:p.r, w:p.w, b:p.b }; c.batting = p.side; save('matches', m); }
+function crkSwitch(mid){ var m = byId('matches', mid), c = m.cricket = m.cricket || { batting:'home', home:{ r:0, w:0, b:0 }, away:{ r:0, w:0, b:0 }, log:[] }; c.batting = c.batting === 'home' ? 'away' : 'home'; var tgt = c[c.batting === 'home' ? 'away' : 'home'].r + 1; sysEvent(m, 'Innings break. ' + teamName(c.batting === 'home' ? m.homeId : m.awayId) + ' need ' + tgt + ' to win'); m.period = '2nd innings'; save('matches', m); }
+
+/* ---------------- standings & stats ---------------- */
+function standingsTable(t, group, dark){
+  var st = standings(t, group);
+  if(!st.length) return '<div class="empty">No teams.</div>';
+  return '<table class="' + (dark ? '' : 'tbl') + '"><thead><tr><th>#</th><th>Team</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th>' + (dark ? '' : '<th class="num">F</th><th class="num">A</th>') + '<th class="num">+/-</th><th class="num">Pts</th>' + (dark ? '' : '<th>Form</th>') + '</tr></thead><tbody>' +
+    st.map(function(x, i){ return '<tr><td>' + (i + 1) + '</td><td><span class="dot" style="background:' + esc(x.team.color) + '"></span>' + esc(x.team.name) + '</td><td class="num">' + x.P + '</td><td class="num">' + x.W + '</td><td class="num">' + x.D + '</td><td class="num">' + x.L + '</td>' + (dark ? '' : '<td class="num">' + x.F + '</td><td class="num">' + x.A + '</td>') + '<td class="num">' + (x.F - x.A > 0 ? '+' : '') + (x.F - x.A) + '</td><td class="num"><b>' + x.Pts + '</b></td>' + (dark ? '' : '<td>' + x.form.slice(-5).map(function(f){ return '<span class="badge ' + (f === 'W' ? 'b-ok' : f === 'L' ? 'b-bad' : '') + '" style="margin-right:2px">' + f + '</span>'; }).join('') + '</td>') + '</tr>'; }).join('') + '</tbody></table>';
+}
+function bracketHtml(t){
+  var ko = tMatches(t.id).filter(function(m){ return m.ko; });
+  if(!ko.length) return '';
+  var rounds = {}; ko.forEach(function(m){ var k = m.stage === '3rd place' ? 999 : num(m.round); (rounds[k] = rounds[k] || []).push(m); });
+  return '<section class="panel flush"><header><h3>Knockout bracket</h3></header><div class="bracket">' + Object.keys(rounds).sort(function(a, b){ return a - b; }).map(function(k){
+    var list = rounds[k].sort(function(a, b){ return num(a.slot) - num(b.slot); });
+    return '<div class="rd"><h4>' + esc(list[0].stage) + '</h4>' + list.map(function(m){
+      var s = score(m), w = winnerOf(m), pl = m.status !== 'scheduled';
+      return '<div class="bm"><div class="' + (w && w === m.homeId ? 'w' : '') + '"><span>' + esc(teamName(m.homeId)) + '</span><b>' + (pl && !m.bye ? esc(s.hT) : '') + '</b></div><div class="' + (w && w === m.awayId ? 'w' : '') + '"><span>' + esc(m.bye ? 'BYE' : teamName(m.awayId)) + '</span><b>' + (pl && !m.bye ? esc(s.aT) : '') + '</b></div></div>';
+    }).join('') + '</div>';
+  }).join('') + '</div></section>';
+}
+function vStandings(){
+  var t = getCur(); if(!t) return noTournament();
+  var gs = groupsOf(t.id), ms = tMatches(t.id), hasLeague = ms.some(function(m){ return !m.ko && !m.bye; });
+  var sp = SPORTS[t.sport] || SPORTS.Other, ps = playerStats(t.id);
+  var ids = Object.keys(ps).filter(function(k){ return byId('players', k); });
+  var scorers = ids.filter(function(k){ return ps[k].pts; }).sort(function(a, b){ return ps[b].pts - ps[a].pts; }).slice(0, 15);
+  var cards = ids.filter(function(k){ return ps[k].yc || ps[k].rc; }).sort(function(a, b){ return (ps[b].rc * 3 + ps[b].yc) - (ps[a].rc * 3 + ps[a].yc); }).slice(0, 15);
+  var h = head('Standings & stats', 'Win ' + num(t.ptsWin, 3) + ', draw ' + num(t.ptsDraw, 1) + ', loss ' + num(t.ptsLoss, 0) + ' points. Ties split by goal difference, then goals scored.', '<button class="btn" onclick="window.print()">Print</button>');
+  if(hasLeague || !ms.length){
+    if(gs.length && ms.some(function(m){ return /^Group/.test(m.stage || ''); })) h += '<div class="cols" style="margin-bottom:18px">' + gs.map(function(g){ return '<section class="panel flush"><header><h3>Group ' + esc(g) + '</h3></header><div class="pb tbl-wrap">' + standingsTable(t, g) + '</div></section>'; }).join('') + '</div>';
+    else h += '<section class="panel flush"><header><h3>League table</h3></header><div class="pb tbl-wrap">' + standingsTable(t) + '</div></section>';
+  }
+  h += bracketHtml(t);
+  h += '<div class="cols"><section class="panel flush"><header><h3>' + (sp.mode === 'goals' ? 'Top scorers' : 'Top points') + '</h3></header><div class="pb"><table class="tbl"><tbody>' +
+    (scorers.length ? scorers.map(function(k, i){ var p = byId('players', k); return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(p.name) + '</b><div class="small muted">' + esc(teamName(p.teamId)) + '</div></td><td class="num"><b>' + ps[k].pts + '</b></td></tr>'; }).join('') : emptyRow(3, 'No scorers recorded')) + '</tbody></table></div></section>' +
+    '<section class="panel flush"><header><h3>Discipline</h3></header><div class="pb"><table class="tbl"><tbody>' +
+    (cards.length ? cards.map(function(k){ var p = byId('players', k); return '<tr><td><b>' + esc(p.name) + '</b><div class="small muted">' + esc(teamName(p.teamId)) + '</div></td><td class="num">' + (ps[k].yc ? '<span class="badge b-warn">' + ps[k].yc + ' yellow</span> ' : '') + (ps[k].rc ? '<span class="badge b-bad">' + ps[k].rc + ' red</span>' : '') + '</td></tr>'; }).join('') : emptyRow(2, 'No cards shown')) + '</tbody></table></div></section></div>';
+  return h;
+}
+
+/* ---------------- live stream ---------------- */
+function vStream(){
+  var t = getCur(); if(!t) return noTournament();
+  var url = baseUrl();
+  var ms = tMatches(t.id).filter(function(m){ return !m.bye && m.status !== 'finished' && m.status !== 'cancelled'; }).slice(0, 15);
+  return head('Live stream', 'Embed your YouTube or Facebook live broadcast on the public scoreboard, and add a live score overlay to your stream.', '<button class="btn pri" onclick="editStream()">Set stream links</button>') +
+    '<div class="cols"><section class="panel"><header><h3>YouTube</h3>' + (t.youtubeUrl ? '<a class="small" href="' + esc(t.youtubeUrl) + '" target="_blank" rel="noopener">Open</a>' : '') + '</header><div class="pb">' + (t.youtubeUrl ? (videoHtml(t.youtubeUrl) || '<p class="muted">This link cannot be embedded. Use a watch, live or channel URL.</p>') : '<div class="empty"><b>No YouTube link</b>Paste a live video URL (youtube.com/live/...) or your channel URL to always show the current live stream.</div>') + '</div></section>' +
+    '<section class="panel"><header><h3>Facebook</h3>' + (t.facebookUrl ? '<a class="small" href="' + esc(t.facebookUrl) + '" target="_blank" rel="noopener">Open</a>' : '') + '</header><div class="pb">' + (t.facebookUrl ? videoHtml(t.facebookUrl) : '<div class="empty"><b>No Facebook link</b>Paste the public URL of the live video from your Page.</div>') + '</div></section></div>' +
+    '<section class="panel" style="margin-top:18px"><header><h3>Share & overlay</h3></header><div class="pb"><dl class="kv">' +
+    '<dt>Public scoreboard</dt><dd><a href="#board/' + t.id + '" target="_blank" rel="noopener">' + esc(url + '#board/' + t.id) + '</a> <button class="btn sm" onclick="copyText(\'' + url + '#board/' + t.id + '\')">Copy</button></dd></dl>' +
+    '<p class="small muted">Overlay for OBS or Streamlabs: add a Browser Source with the match overlay link below, width 1280, height 160. The background is transparent, so only the score bug shows over your camera.' + (MODE !== 'firebase' ? ' <b>Turn on cloud sync in Settings</b> so the overlay updates when you score from a phone.' : '') + '</p></div>' +
+    '<div class="pb tbl-wrap" style="padding-top:0"><table class="tbl"><thead><tr><th>Match</th><th>When</th><th>Stream</th><th></th></tr></thead><tbody>' +
+    (ms.length ? ms.map(function(m){ return '<tr><td><b>' + esc(teamName(m.homeId)) + '</b> v <b>' + esc(teamName(m.awayId)) + '</b> ' + statusBadge(m) + '</td><td class="small">' + esc(fmtDate(m.date)) + ' ' + esc(m.time || '') + '</td><td class="small">' + (m.youtubeUrl || m.facebookUrl ? 'Own link' : 'Tournament link') + '</td><td class="act"><button class="btn sm" onclick="copyText(\'' + url + '#overlay/' + m.id + '\')">Copy overlay</button> <a class="btn sm" href="#overlay/' + m.id + '" target="_blank" rel="noopener">Preview</a> <button class="btn sm" onclick="editMatch(\'' + m.id + '\')">Set link</button></td></tr>'; }).join('') : emptyRow(4, 'No upcoming matches')) +
+    '</tbody></table></div></section>';
+}
+function editStream(){
+  var t = getCur();
+  openModal('Stream links', fld({ n:'youtubeUrl', l:'YouTube live link or channel URL', v:t.youtubeUrl, full:true, ph:'https://www.youtube.com/live/XXXXXXXXXXX' }) +
+    fld({ n:'facebookUrl', l:'Facebook live video URL', v:t.facebookUrl, full:true, ph:'https://www.facebook.com/yourpage/videos/123...' }) +
+    '<p class="full small muted" style="margin:0">The scoreboard shows YouTube first when both are set. Individual matches can override these in Edit match.</p>', function(d){
+    t.youtubeUrl = d.youtubeUrl; t.facebookUrl = d.facebookUrl; save('tournaments', t); toast('Stream links saved');
+  }, { saveText:'Save links' });
+}
+
+/* ---------------- public screens ---------------- */
+function bigScore(m){
+  var s = score(m), sp = sportOf(m), live = isLive(m);
+  return '<div class="big-score"><div class="tm"><i style="background:' + esc(teamColor(m.homeId)) + '"></i>' + esc(teamName(m.homeId)) + '</div><div class="sc">' + (m.status === 'scheduled' ? '<span style="font-size:.5em">v</span>' : esc(s.hT) + '<span style="color:#3C6E5C">-</span>' + esc(s.aT)) + '</div><div class="tm r"><i style="background:' + esc(teamColor(m.awayId)) + '"></i>' + esc(teamName(m.awayId)) + '</div></div>' +
+    '<div class="clk">' + (live && sp.clock ? '<span data-clock="' + m.id + '">' + fmtClock(clockSecs(m)) + '</span> ' : '') + esc(live ? (m.status === 'break' ? 'Break' : m.period || 'Live') : m.status === 'finished' ? 'Full time' : fmtDate(m.date) + ' ' + (m.time || '')) + '</div>' +
+    (s.sub ? '<div style="text-align:center;color:#B8D3C7;margin-top:6px">' + esc(s.sub) + '</div>' : '');
+}
+function boardFeed(m, n){
+  var ev = (m.events || []).slice().reverse().slice(0, n || 12);
+  return ev.length ? ev.map(function(e){ return '<div class="bev"><div class="mn">' + (e.min ? esc(e.min) + '\'' : '') + '</div><div>' + (e.type !== 'Comment' ? '<b>' + esc(e.type) + '</b> ' : '') + esc(e.text || '') + '</div></div>'; }).join('') : '<div style="color:#86AE9D">Commentary will appear here.</div>';
+}
+function miniRes(m){ var s = score(m); return '<div class="mini-res"><span>' + esc(teamName(m.homeId)) + '</span><b>' + (m.status === 'scheduled' ? '<span style="font-size:14px;color:#86AE9D">' + esc(m.time || '') + '</span>' : esc(s.hT) + ' - ' + esc(s.aT)) + '</b><span class="r">' + esc(teamName(m.awayId)) + '</span></div>'; }
+function vBoard(r){
+  var t = byId('tournaments', r.a) || getCur();
+  if(!t) return '<div class="board"><h1>No tournament</h1></div>';
+  var ms = tMatches(t.id).filter(function(m){ return !m.bye && m.status !== 'cancelled'; });
+  var live = ms.filter(isLive), up = ms.filter(function(m){ return m.status === 'scheduled'; }), res = ms.filter(function(m){ return m.status === 'finished'; }).reverse();
+  var feat = live[0] || up[0] || res[0];
+  var stream = streamFor(feat, t);
+  var gs = groupsOf(t.id), table = '';
+  if(ms.some(function(m){ return !m.ko; })){
+    table = gs.length && ms.some(function(m){ return /^Group/.test(m.stage || ''); }) ? gs.map(function(g){ return '<div class="bpanel"><h3>Group ' + esc(g) + '</h3>' + standingsTable(t, g, true) + '</div>'; }).join('') : '<div class="bpanel"><h3>Table</h3>' + standingsTable(t, null, true) + '</div>';
+  }
+  return '<div class="board"><div class="board-top"><div><span>' + esc(SETTINGS.org) + '</span><h1>' + esc(t.name) + '</h1></div><span>' + (live.length ? '<span class="livedot"></span> ' + live.length + ' live now' : esc(t.sport + (t.venue ? ', ' + t.venue : ''))) + '</span></div>' +
+    '<div class="board-grid"><div>' + (feat ? '<div class="bpanel"><h3>' + (isLive(feat) ? 'Live' : feat.status === 'finished' ? 'Latest result' : 'Next match') + (feat.stage ? ', ' + esc(feat.stage) : '') + '</h3>' + bigScore(feat) + '</div>' : '') +
+    (stream ? '<div class="bpanel">' + videoHtml(stream) + '</div>' : '') +
+    (live.length > 1 ? '<div class="bpanel"><h3>Also live</h3>' + live.slice(1).map(miniRes).join('') + '</div>' : '') +
+    (feat ? '<div class="bpanel"><h3>Commentary</h3>' + boardFeed(feat, 10) + '</div>' : '') + '</div>' +
+    '<div>' + table + bracketHtml(t).replace('class="panel flush"', 'class="bpanel"').replace(/<header>|<\/header>/g, '') +
+    '<div class="bpanel"><h3>Coming up</h3>' + (up.length ? up.slice(0, 6).map(function(m){ return '<div style="color:#86AE9D;font-size:13px;margin-top:8px">' + esc(fmtDate(m.date)) + '</div>' + miniRes(m); }).join('') : '<div style="color:#86AE9D">No more fixtures scheduled.</div>') + '</div>' +
+    '<div class="bpanel"><h3>Results</h3>' + (res.length ? res.slice(0, 8).map(miniRes).join('') : '<div style="color:#86AE9D">No results yet.</div>') + '</div></div></div></div>';
+}
+function vMatchBoard(r){
+  var m = byId('matches', r.a);
+  if(!m) return '<div class="board"><h1>Match not found</h1></div>';
+  var t = byId('tournaments', m.tournamentId), stream = streamFor(m, t);
+  return '<div class="board"><div class="board-top"><div><span>' + esc(t ? t.name : '') + '</span><h1>' + esc(m.stage || 'Match') + '</h1></div><span>' + esc(m.venue || '') + (refNames(m) ? ', referee ' + esc(refNames(m)) : '') + '</span></div>' +
+    '<div class="bpanel">' + bigScore(m) + '</div>' +
+    '<div class="board-grid"><div>' + (stream ? '<div class="bpanel">' + videoHtml(stream) + '</div>' : '') + '<div class="bpanel"><h3>Commentary</h3>' + boardFeed(m, 40) + '</div></div>' +
+    '<div><div class="bpanel"><h3>Line-ups</h3>' + [m.homeId, m.awayId].map(function(id){ return '<div style="margin-bottom:12px"><b>' + esc(teamName(id)) + '</b>' + teamPlayers(id).map(function(p){ return '<div style="color:#CFE3DA;font-size:14px;padding:2px 0">' + (p.number !== '' && p.number != null ? '<span class="cond" style="display:inline-block;width:28px;color:var(--yellow)">' + esc(p.number) + '</span>' : '') + esc(p.name) + (p.captain ? ' (C)' : '') + '</div>'; }).join('') + '</div>'; }).join('') + '</div></div></div></div>';
+}
+function vOverlay(r){
+  var m = byId('matches', r.a);
+  if(!m) return '';
+  var s = score(m), sp = sportOf(m), live = isLive(m);
+  return '<div class="ovl"><div class="t"><i style="background:' + esc(teamColor(m.homeId)) + '"></i>' + esc(teamShort(m.homeId)) + '</div><div class="s">' + esc(s.hT) + ' - ' + esc(s.aT) + '</div><div class="t">' + esc(teamShort(m.awayId)) + '<i style="background:' + esc(teamColor(m.awayId)) + '"></i></div>' +
+    (sp.clock && live ? '<div class="c" data-clock="' + m.id + '">' + fmtClock(clockSecs(m)) + '</div>' : '') +
+    '<div class="p">' + esc(m.status === 'finished' ? 'FT' : m.status === 'break' ? 'Break' : sp.mode === 'sets' && s.cur ? s.cur.h + '-' + s.cur.a : m.period || '') + (m.pens ? ' pens ' + m.pens.h + '-' + m.pens.a : '') + '</div></div>';
+}
+
+/* ---------------- demo data ---------------- */
+function loadDemo(){
+  if(DB.tournaments.length && !confirm('Add a demo futsal tournament alongside your existing data?')) return;
+  var t = save('tournaments', { name:'Island Futsal Cup 2026', sport:'Futsal', category:"Men's open", format:'league', status:'Ongoing', startDate:today(), endDate:addDays(today(), 6), venue:'Main ground', entryFee:1500, maxTeams:8, minPlayers:7, maxPlayers:12, ptsWin:3, ptsDraw:1, ptsLoss:0, thirdPlace:true, prizes:'Champion MVR 10,000, Runner-up MVR 5,000', organizer:'Sports committee' });
+  var names = [['Reef Rangers','REE','#0E5E45'],['Harbour Hawks','HAW','#D13A2B'],['Lagoon United','LAG','#2463A8'],['Coral Strikers','COR','#E0782F'],['Atoll Warriors','ATO','#7B3FA0'],['Tide FC','TID','#1E8C93']];
+  var first = ['Ahmed','Mohamed','Ibrahim','Hassan','Ali','Hussain','Ismail','Yoosuf','Abdulla','Moosa','Aishath','Shifan','Naseem','Rasheed','Fayaz','Zaid','Shamin','Azim'];
+  var last = ['Ali','Naeem','Shareef','Rasheed','Hameed','Waheed','Manik','Didi','Saeed','Latheef','Zahir','Faiz'];
+  var pos = SPORTS.Futsal.positions;
+  var teams = names.map(function(n, i){ return save('teams', { tournamentId:t.id, name:n[0], short:n[1], color:n[2], captain:first[i] + ' ' + last[i], manager:first[i + 6] + ' ' + last[i + 3], phone:'7' + (600000 + i * 1111), status:'Approved' }); });
+  teams.forEach(function(tm, ti){ for(var k = 0; k < 9; k++) save('players', { tournamentId:t.id, teamId:tm.id, name:first[(ti * 3 + k) % first.length] + ' ' + last[(ti + k * 5) % last.length], number:k === 0 ? 1 : k + 2 + (ti % 3), position:k === 0 ? pos[0] : pos[1 + (k % 3)], captain:k === 4 }); });
+  var refs = [['Abdul Rasheed','Referee','National',400],['Mariyam Shaheema','Referee','Class 1',400],['Ali Fawaz','Timekeeper','',200]].map(function(r){ return save('referees', { name:r[0], role:r[1], grade:r[2], fee:r[3], active:true, sports:'Futsal, Football' }); });
+  var rr = roundRobin(teams.map(function(x){ return x.id; })), list = [];
+  rr.forEach(function(r, i){ r.forEach(function(p){ list.push({ tournamentId:t.id, stage:'League', round:i + 1, homeId:p[0], awayId:p[1], status:'scheduled', events:[] }); }); });
+  scheduleList(list, { startDate:addDays(today(), -1), startTime:'17:00', perDay:3, gap:50, venue:'Main ground' });
+  list.forEach(function(m, i){
+    m.refereeIds = [refs[i % 2].id, refs[2].id];
+    if(i < 4){
+      m.status = 'finished'; m.period = '2nd half'; m.clock = { running:false, base:40 * 60 };
+      var g = [[3,1],[2,2],[0,1],[4,2]][i];
+      [['home', g[0]], ['away', g[1]]].forEach(function(sd){
+        var tid = sd[0] === 'home' ? m.homeId : m.awayId, pl = DB.players.filter(function(p){ return p.teamId === tid; });
+        for(var k = 0; k < sd[1]; k++){ var p = pl[1 + ((k * 3 + i) % (pl.length - 1))]; m.events.push({ id:uid(), at:Date.now(), min:5 + k * 9 + i, type:'Goal', side:sd[0], playerId:p.id, pts:1, text:p.name + ' scores for ' + teamName(tid) }); }
+      });
+      var cp = DB.players.filter(function(p){ return p.teamId === m.awayId; })[2];
+      m.events.push({ id:uid(), at:Date.now(), min:28, type:'Yellow card', side:'away', playerId:cp.id, pts:0, text:teamName(m.awayId) + ', ' + cp.name });
+      m.events.sort(function(a, b){ return a.min - b.min; });
+      m.motm = m.events[0].playerId;
+    }
+    if(i === 4){
+      m.status = 'live'; m.date = today(); m.period = '2nd half'; m.clock = { running:true, base:24 * 60, startedAt:Date.now() };
+      var hp = DB.players.filter(function(p){ return p.teamId === m.homeId; });
+      m.events = [{ id:uid(), at:Date.now(), min:1, type:'Comment', text:'Kick-off! ' + teamName(m.homeId) + ' v ' + teamName(m.awayId) }, { id:uid(), at:Date.now(), min:12, type:'Goal', side:'home', playerId:hp[3].id, pts:1, text:hp[3].name + ' scores for ' + teamName(m.homeId) + ' with a low shot to the far post' }, { id:uid(), at:Date.now(), min:21, type:'Comment', text:'Big save keeps it 1-0 at the break.' }];
+    }
+    save('matches', m);
+  });
+  teams.forEach(function(tm, i){ if(i < 4) save('payments', { tournamentId:t.id, teamId:tm.id, amount:1500, date:addDays(today(), -7), method:i % 2 ? 'Bank transfer' : 'Cash', receiptNo:'R-ISL-' + String(i + 1).padStart(4, '0'), receivedBy:'Treasurer' }); });
+  save('payments', { tournamentId:t.id, teamId:teams[4].id, amount:750, date:addDays(today(), -3), method:'Cash', receiptNo:'R-ISL-0005', receivedBy:'Treasurer' });
+  save('transactions', { tournamentId:t.id, type:'income', category:'Sponsorship', amount:8000, date:addDays(today(), -10), method:'Bank transfer', party:'Local resort', desc:'Title sponsor' });
+  save('transactions', { tournamentId:t.id, type:'expense', category:'Venue & ground', amount:3500, date:addDays(today(), -2), method:'Cash', desc:'Ground hire and lights, 7 nights' });
+  save('transactions', { tournamentId:t.id, type:'expense', category:'Equipment', amount:1200, date:addDays(today(), -4), method:'Cash', desc:'Match balls and bibs' });
+  save('transactions', { tournamentId:t.id, type:'expense', category:'Media & streaming', amount:900, date:addDays(today(), -1), method:'Bank transfer', desc:'Camera operator' });
+  [['Champion','team',1,2500,'Ordered'],['Runner-up','team',1,1500,'Ordered'],['Best player','player',1,600,'Planned'],['Top scorer','player',1,600,'Planned'],['Fair play team','team',1,400,'Planned']].forEach(function(a, i){ save('trophies', { tournamentId:t.id, title:a[0], kind:a[1], qty:a[2], cost:a[3], status:a[4], order:i, date:a[4] === 'Ordered' ? addDays(today(), -5) : '' }); });
+  setCur(t.id);
+  location.hash = '#dashboard';
+  toast('Demo tournament loaded');
+}
+
+/* ---------------- boot ---------------- */
+var VIEWS = { dashboard:vDashboard, tournaments:vTournaments, teams:vTeams, players:vPlayers, referees:vReferees, matches:vMatches, live:vLive, standings:vStandings, stream:vStream, fees:vFees, finance:vFinance, trophies:vTrophies, settings:vSettings, board:vBoard, match:vMatchBoard, overlay:vOverlay };
+window.addEventListener('hashchange', function(){ document.body.classList.remove('nav-open'); render(); window.scrollTo(0, 0); });
+window.addEventListener('storage', function(e){ if(e.key === APP_KEY && MODE === 'local'){ loadLocal(); scheduleRender(); } });
+(function boot(){
+  loadLocal();
+  var cfgTxt = localStorage.getItem(FB_KEY);
+  if(cfgTxt){
+    var cfg = null; try { cfg = JSON.parse(cfgTxt); } catch(e){}
+    if(cfg){
+      $('#main').innerHTML = '<div class="empty"><b>Connecting to cloud...</b></div>';
+      initFirebase(cfg).then(render).catch(function(e){ console.error(e); MODE = 'local'; toast('Cloud sync failed, using this device: ' + e.message); render(); });
+      return;
+    }
+  }
+  render();
+})();
+</script>
+</body>
+</html>
