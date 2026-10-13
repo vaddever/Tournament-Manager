@@ -360,59 +360,190 @@ function save(col, obj){
   obj.updatedAt = Date.now();
   var arr = DB[col], i = arr.findIndex(function(x){ return x.id === obj.id; });
   if(i >= 0) arr[i] = obj; else arr.push(obj);
-  if(MODE === 'firebase') FS.collection(col).doc(obj.id).set(clone(obj)).catch(fbErr);
+  if(MODE === 'firebase') fbWrite(col, obj).catch(fbErr);
   else persistLocal();
   scheduleRender();
   return obj;
 }
 function removeDoc(col, id){
   DB[col] = DB[col].filter(function(x){ return x.id !== id; });
-  if(MODE === 'firebase') FS.collection(col).doc(id).delete().catch(fbErr);
+  if(MODE === 'firebase') fbDelete(col, id).catch(fbErr);
   else persistLocal();
   scheduleRender();
 }
 function saveSettings(){
-  if(MODE === 'firebase') FS.collection('meta').doc('settings').set(clone(SETTINGS)).catch(fbErr);
+  if(MODE === 'firebase'){ var st = clone(SETTINGS); delete st.pin; FS.collection('meta').doc('settings').set(st).catch(fbErr); }
   persistLocal();
   scheduleRender();
 }
-function fbErr(e){ console.error(e); toast('Cloud error: ' + (e.code || e.message || e)); }
 
-/* ---------------- Firebase (optional) ---------------- */
-function loadScript(src){ return new Promise(function(res, rej){ var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function(){ rej(new Error('Could not load ' + src)); }; document.head.appendChild(s); }); }
+/* ---------------- Firebase (cloud sync) ----------------
+   HOW TO CONNECT: paste your firebaseConfig into FIREBASE_CONFIG below.
+   Every device that opens this page (scorers, big screens, public viewers)
+   then connects automatically. Admins sign in with Firebase email/password.
+   ------------------------------------------------------- */
+var FIREBASE_CONFIG = {
+  // apiKey: "AIza...",
+  // authDomain: "your-project.firebaseapp.com",
+  // projectId: "your-project",
+  // storageBucket: "your-project.appspot.com",
+  // messagingSenderId: "1234567890",
+  // appId: "1:1234567890:web:abc123"
+};
+var PUBLIC_COLS = ['tournaments','teams','players','matches','referees','trophies'];
+var ADMIN_COLS = ['payments','transactions'];
+// fields kept out of public view: stored in private_<collection>, readable by admins only
+var PRIV_FIELDS = { teams:['phone','email','notes'], players:['phone','idCard','dob'], referees:['phone','fee'], trophies:['cost','supplier','notes','date'] };
+var PRIV = {}; Object.keys(PRIV_FIELDS).forEach(function(k){ PRIV[k] = {}; });
+var USER = null, AUTH = null, CFG_SRC = '', _adminUnsubs = [], _pollT = null;
+
+function getCfg(){
+  if(FIREBASE_CONFIG && FIREBASE_CONFIG.projectId){ CFG_SRC = 'file'; return FIREBASE_CONFIG; }
+  var txt = localStorage.getItem(FB_KEY), cfg = null;
+  try { cfg = JSON.parse(txt || 'null'); } catch(e){}
+  if(cfg && cfg.projectId){ CFG_SRC = 'device'; return cfg; }
+  CFG_SRC = ''; return null;
+}
+function loadScript(src){ return new Promise(function(res, rej){ var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function(){ rej(new Error('Could not download Firebase. Check the internet connection.')); }; document.head.appendChild(s); }); }
+function withTimeout(p, ms, msg){ return Promise.race([p, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error(msg)); }, ms); })]); }
+
+function fbMsg(e){
+  var c = (e && e.code) || '';
+  if(/permission-denied/.test(c)) return USER ? USER.email + ' is not listed as an admin in your Firestore rules.' : 'Sign in as admin to make changes.';
+  if(/unavailable/.test(c)) return 'Offline. Changes are saved and will sync when the connection returns.';
+  if(/not-found|failed-precondition/.test(c)) return 'Cloud Firestore is not created in this Firebase project yet (Build > Firestore Database > Create database).';
+  if(/invalid-credential|wrong-password|user-not-found|invalid-login|invalid-email/.test(c)) return 'Email or password is incorrect.';
+  if(/too-many-requests/.test(c)) return 'Too many attempts. Wait a few minutes and try again.';
+  if(/operation-not-allowed/.test(c)) return 'Turn on Email/Password in Firebase Authentication > Sign-in method.';
+  if(/network-request-failed/.test(c)) return 'No internet connection.';
+  if(/api-key|invalid-api-key/.test(c)) return 'The apiKey in your Firebase config is wrong.';
+  if(/configuration-not-found/.test(c)) return 'Firebase Authentication is not enabled in this project (Build > Authentication > Get started).';
+  return (e && (e.message || e.code)) || String(e);
+}
+var _lastErr = '';
+function fbErr(e){ console.error(e); var m = fbMsg(e); if(m !== _lastErr){ toast(m); _lastErr = m; setTimeout(function(){ _lastErr = ''; }, 5000); } }
+
+function splitPriv(col, obj){
+  var o = clone(obj), p = {}, pf = PRIV_FIELDS[col];
+  if(pf) pf.forEach(function(f){ if(f in o){ p[f] = o[f]; delete o[f]; } });
+  return { pub:o, priv:pf ? p : null };
+}
+function fbWrite(col, obj){
+  var s = splitPriv(col, obj), jobs = [FS.collection(col).doc(obj.id).set(s.pub)];
+  if(s.priv) jobs.push(FS.collection('private_' + col).doc(obj.id).set(s.priv));
+  return Promise.all(jobs);
+}
+function fbDelete(col, id){
+  var jobs = [FS.collection(col).doc(id).delete()];
+  if(PRIV_FIELDS[col]) jobs.push(FS.collection('private_' + col).doc(id).delete());
+  return Promise.all(jobs);
+}
+function mergeDocs(c, docs){ return docs.map(function(d){ var x = d.data(); x.id = x.id || d.id; if(PRIV[c] && PRIV[c][x.id]) Object.assign(x, PRIV[c][x.id]); return x; }); }
+
 function initFirebase(cfg){
   var base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
-  return loadScript(base + 'firebase-app-compat.js')
-    .then(function(){ return loadScript(base + 'firebase-firestore-compat.js'); })
+  return withTimeout(loadScript(base + 'firebase-app-compat.js'), 20000, 'Could not download Firebase. Check the internet connection.')
+    .then(function(){ return Promise.all([loadScript(base + 'firebase-firestore-compat.js'), loadScript(base + 'firebase-auth-compat.js')]); })
     .then(function(){
       var app = firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
       FS = firebase.firestore(app);
+      try { FS.enablePersistence({ synchronizeTabs:true }).catch(function(){}); } catch(e){}
+      AUTH = firebase.auth(app);
       MODE = 'firebase';
-      return pullAll();
-    })
-    .then(function(){
-      COLS.forEach(function(c){
-        FS.collection(c).onSnapshot(function(s){ DB[c] = s.docs.map(function(d){ return d.data(); }); scheduleRender(); }, fbErr);
+      return new Promise(function(res){
+        var first = true;
+        AUTH.onAuthStateChanged(function(u){
+          USER = u;
+          if(u) subAdmin(); else unsubAdmin();
+          scheduleRender();
+          if(first){ first = false; res(); }
+        });
       });
-      FS.collection('meta').doc('settings').onSnapshot(function(d){ if(d.exists){ Object.assign(SETTINGS, d.data()); scheduleRender(); } }, fbErr);
-      // polling fallback in case a listener stalls on a weak connection
-      setInterval(function(){ pullAll().then(scheduleRender).catch(function(){}); }, 30000);
+    })
+    .then(function(){ return withTimeout(pullPublic(), 15000, 'Firestore did not respond. Check that the database is created and the projectId is right.'); })
+    .then(function(){
+      subPublic();
+      clearInterval(_pollT);
+      _pollT = setInterval(function(){ pullPublic().then(scheduleRender).catch(function(){}); }, 30000);
     });
 }
-function pullAll(){
-  var jobs = COLS.map(function(c){ return FS.collection(c).get().then(function(s){ DB[c] = s.docs.map(function(d){ return d.data(); }); }); });
+function pullPublic(){
+  var jobs = PUBLIC_COLS.map(function(c){ return FS.collection(c).get().then(function(s){ DB[c] = mergeDocs(c, s.docs); }); });
   jobs.push(FS.collection('meta').doc('settings').get().then(function(d){ if(d.exists) Object.assign(SETTINGS, d.data()); }));
   return Promise.all(jobs);
 }
+function subPublic(){
+  PUBLIC_COLS.forEach(function(c){
+    FS.collection(c).onSnapshot(function(s){ DB[c] = mergeDocs(c, s.docs); scheduleRender(); }, fbErr);
+  });
+  FS.collection('meta').doc('settings').onSnapshot(function(d){ if(d.exists){ Object.assign(SETTINGS, d.data()); scheduleRender(); } }, fbErr);
+}
+function subAdmin(){
+  unsubAdmin(true);
+  ADMIN_COLS.forEach(function(c){
+    _adminUnsubs.push(FS.collection(c).onSnapshot(function(s){ DB[c] = s.docs.map(function(d){ return d.data(); }); scheduleRender(); }, fbErr));
+  });
+  Object.keys(PRIV_FIELDS).forEach(function(c){
+    _adminUnsubs.push(FS.collection('private_' + c).onSnapshot(function(s){
+      var m = {}; s.docs.forEach(function(d){ m[d.id] = d.data(); });
+      PRIV[c] = m;
+      DB[c] = DB[c].map(function(x){ return Object.assign({}, x, m[x.id] || {}); });
+      scheduleRender();
+    }, fbErr));
+  });
+}
+function unsubAdmin(keepData){
+  _adminUnsubs.forEach(function(u){ try { u(); } catch(e){} });
+  _adminUnsubs = [];
+  if(keepData) return;
+  ADMIN_COLS.forEach(function(c){ DB[c] = []; });
+  Object.keys(PRIV_FIELDS).forEach(function(c){
+    PRIV[c] = {};
+    DB[c] = DB[c].map(function(x){ var y = Object.assign({}, x); PRIV_FIELDS[c].forEach(function(f){ delete y[f]; }); return y; });
+  });
+}
+function doLogin(e){
+  e.preventDefault();
+  var em = $('#lgEmail').value.trim(), pw = $('#lgPass').value;
+  $('#lgBtn').disabled = true; $('#lgBtn').textContent = 'Signing in...';
+  AUTH.signInWithEmailAndPassword(em, pw).then(function(){ toast('Signed in'); }).catch(function(err){ fbErr(err); $('#lgBtn').disabled = false; $('#lgBtn').textContent = 'Sign in'; });
+}
+function resetPw(){
+  var em = ($('#lgEmail') && $('#lgEmail').value.trim()) || prompt('Email address of the admin account');
+  if(!em) return;
+  AUTH.sendPasswordResetEmail(em).then(function(){ toast('Password reset email sent to ' + em); }).catch(fbErr);
+}
+function signOut(){ if(AUTH) AUTH.signOut().then(function(){ toast('Signed out'); }); }
+function vLogin(){
+  return '<div class="lock"><h1>Admin sign in</h1><p class="muted">Sign in with the admin account created in Firebase Authentication.</p>' +
+    '<form onsubmit="doLogin(event)" style="text-align:left"><label class="fld"><span>Email</span><input id="lgEmail" type="email" autocomplete="username" required></label>' +
+    '<label class="fld" style="margin-top:10px"><span>Password</span><input id="lgPass" type="password" autocomplete="current-password" required></label>' +
+    '<button id="lgBtn" class="btn pri lg" style="width:100%;margin-top:14px">Sign in</button></form>' +
+    '<p class="small"><a href="javascript:resetPw()">Forgot password</a> &nbsp; <a href="#board">Public scoreboard</a></p></div>';
+}
+function testConnection(){
+  if(MODE !== 'firebase') return toast('Cloud sync is not connected');
+  if(!USER) return toast('Sign in first');
+  var ref = FS.collection('meta').doc('ping');
+  toast('Testing...');
+  withTimeout(ref.set({ at:Date.now(), by:USER.email }, { merge:true }).then(function(){ return ref.get({ source:'server' }); }), 12000, 'No reply from Firestore within 12 seconds.')
+    .then(function(d){ toast(d.exists ? 'Connection OK: read and write both work' : 'Write worked but read failed'); })
+    .catch(fbErr);
+}
 function uploadLocalToCloud(){
   if(MODE !== 'firebase') return toast('Connect to Firebase first');
+  if(!USER) return toast('Sign in first');
   var local; try { local = JSON.parse(localStorage.getItem(APP_KEY) || 'null'); } catch(e){}
   if(!local || !local.db) return toast('No local data found on this device');
-  if(!confirm('Upload all data stored on this device to Firebase? Records with the same ID will be overwritten.')) return;
+  var n = 0; COLS.forEach(function(c){ n += (local.db[c] || []).length; });
+  if(!n) return toast('No local data found on this device');
+  if(!confirm('Upload ' + n + ' records stored on this device to Firebase? Records with the same ID are overwritten.')) return;
   var writes = [];
-  COLS.forEach(function(c){ (local.db[c] || []).forEach(function(o){ writes.push(FS.collection(c).doc(o.id).set(o)); }); });
-  writes.push(FS.collection('meta').doc('settings').set(local.settings || SETTINGS));
-  Promise.all(writes).then(function(){ toast('Uploaded ' + (writes.length - 1) + ' records'); return pullAll(); }).then(scheduleRender).catch(fbErr);
+  COLS.forEach(function(c){ (local.db[c] || []).forEach(function(o){ writes.push(fbWrite(c, o)); }); });
+  var st = Object.assign({}, local.settings || {}); delete st.pin;
+  writes.push(FS.collection('meta').doc('settings').set(st));
+  toast('Uploading ' + n + ' records...');
+  Promise.all(writes).then(function(){ toast('Uploaded ' + n + ' records'); }).catch(fbErr);
 }
 
 /* ---------------- render loop ---------------- */
@@ -445,7 +576,8 @@ function render(){
     return;
   }
   renderChrome(r);
-  if(SETTINGS.pin && sessionStorage.getItem(PIN_OK) !== String(SETTINGS.pin)){ $('#main').innerHTML = vLock(); return; }
+  if(MODE === 'firebase' && !USER){ $('#main').innerHTML = vLogin(); return; }
+  if(MODE !== 'firebase' && SETTINGS.pin && sessionStorage.getItem(PIN_OK) !== String(SETTINGS.pin)){ $('#main').innerHTML = vLock(); return; }
   var st = keepState();
   var fn = VIEWS[r.name] || vDashboard;
   try { $('#main').innerHTML = fn(r); }
@@ -479,7 +611,7 @@ function renderChrome(r){
       return '<a href="#' + it[0] + '" class="' + (r.name === it[0] ? 'on' : '') + '">' + it[1] + n + '</a>';
     }).join('');
   }).join('');
-  $('#modeInfo').innerHTML = MODE === 'firebase' ? 'Cloud sync on (Firebase)' : 'Saved on this device';
+  $('#modeInfo').innerHTML = MODE === 'firebase' ? 'Cloud sync on' + (USER ? '<br>' + esc(USER.email) + '<br><a href="javascript:signOut()" style="color:#DCEBE4">Sign out</a>' : ', not signed in') : 'Saved on this device only';
 }
 
 /* ---------------- modal & forms ---------------- */
@@ -1150,22 +1282,31 @@ function delTrophy(id){ if(confirm('Delete this award?')) removeDoc('trophies', 
 
 /* ---------------- settings ---------------- */
 function vSettings(){
-  var cfg = localStorage.getItem(FB_KEY) || '';
-  return head('Settings', '', '') +
+    return head('Settings', '', '') +
     '<div class="cols"><section class="panel"><header><h3>Organisation</h3></header><div class="pb"><form class="grid2" onsubmit="saveOrg(event)">' +
     fld({ n:'org', l:'Organisation name', v:SETTINGS.org, req:true, full:true }) +
     fld({ n:'currency', l:'Currency', v:SETTINGS.currency, req:true }) +
-    fld({ n:'pin', l:'Admin PIN (optional)', t:'password', v:SETTINGS.pin, hint:'Locks admin pages on every device. Public scoreboards stay open.' }) +
+    (MODE === 'firebase' ? fld({ n:'pin', t:'hidden', v:SETTINGS.pin }) : fld({ n:'pin', l:'Admin PIN (optional)', t:'password', v:SETTINGS.pin, hint:'Locks admin pages in this browser. With cloud sync, admin sign-in replaces the PIN.' })) +
     fld({ n:'venues', l:'Venues (one per line)', t:'textarea', v:(SETTINGS.venues || []).join('\n'), full:true, rows:4 }) +
     '<div class="full"><button class="btn pri">Save settings</button></div></form></div></section>' +
-    '<section class="panel"><header><h3>Cloud sync (Firebase)</h3><span class="badge ' + (MODE === 'firebase' ? 'b-ok' : '') + '">' + (MODE === 'firebase' ? 'Connected' : 'Off') + '</span></header><div class="pb">' +
-    '<p class="small muted" style="margin-top:0">Without cloud sync, data stays in this browser and scoreboards update only in other tabs on this device. Connect Firestore so scorers, officials and the public scoreboard stay in sync on any phone or screen.</p>' +
-    '<label class="fld"><span>Firebase config (JSON or the firebaseConfig object)</span><textarea id="fbcfg" rows="7" placeholder="{ apiKey: \'...\', authDomain: \'...\', projectId: \'...\' }">' + esc(cfg) + '</textarea></label>' +
-    '<div class="btns" style="margin-top:10px"><button class="btn pri" onclick="connectFb()">Save &amp; connect</button>' + (cfg ? '<button class="btn dang" onclick="disconnectFb()">Disconnect</button>' : '') + (MODE === 'firebase' ? '<button class="btn" onclick="uploadLocalToCloud()">Upload this device\'s data</button>' : '') + '</div>' +
-    '<p class="small muted">Collections used: tournaments, teams, players, matches, referees, trophies, transactions, payments, meta. Lock your Firestore security rules before going public.</p></div></section></div>' +
+    fbPanel() + '</div>' +
     '<section class="panel" style="margin-top:18px"><header><h3>Backup & data</h3></header><div class="pb btns">' +
     '<button class="btn" onclick="exportAll()">Download backup (JSON)</button><label class="btn">Restore backup<input type="file" accept=".json,application/json" hidden onchange="importAll(this.files[0])"></label>' +
     '<button class="btn" onclick="loadDemo()">Load demo data</button><button class="btn dang" onclick="wipeAll()">Erase all data</button></div></section>';
+}
+function fbPanel(){
+  var on = MODE === 'firebase', cfg = getCfg(), txt = CFG_SRC === 'device' ? localStorage.getItem(FB_KEY) : '';
+  var h = '<section class="panel"><header><h3>Cloud sync (Firebase)</h3><span class="badge ' + (on ? 'b-ok' : cfg ? 'b-bad' : '') + '">' + (on ? 'Connected' : cfg ? 'Not connected' : 'Off') + '</span></header><div class="pb">';
+  if(on){
+    h += '<dl class="kv"><dt>Project</dt><dd>' + esc(cfg.projectId) + '</dd><dt>Config</dt><dd>' + (CFG_SRC === 'file' ? 'Built into this file (all devices)' : 'Saved on this device only') + '</dd><dt>Signed in</dt><dd>' + (USER ? esc(USER.email) : 'No') + '</dd></dl>' +
+      '<div class="btns" style="margin-top:12px"><button class="btn pri" onclick="testConnection()">Test connection</button><button class="btn" onclick="uploadLocalToCloud()">Upload this device\'s data</button>' + (USER ? '<button class="btn" onclick="signOut()">Sign out</button>' : '') + (CFG_SRC === 'device' ? '<button class="btn dang" onclick="disconnectFb()">Disconnect</button>' : '') + '</div>';
+    if(CFG_SRC === 'device') h += '<p class="small" style="color:var(--red)">Other devices will not connect until the config is pasted into FIREBASE_CONFIG near the top of index.html.</p>';
+  } else {
+    h += '<p class="small muted" style="margin-top:0">Data is only on this browser right now. For phones, big screens and stream overlays to stay in sync, paste your config into <b>FIREBASE_CONFIG</b> near the top of index.html and re-upload it to GitHub. To try it on this device first, paste it here.</p>' +
+      '<label class="fld"><span>firebaseConfig</span><textarea id="fbcfg" rows="7" placeholder="const firebaseConfig = { apiKey: ..., projectId: ... };">' + esc(txt || '') + '</textarea></label>' +
+      '<div class="btns" style="margin-top:10px"><button class="btn pri" onclick="connectFb()">Connect on this device</button>' + (CFG_SRC === 'device' ? '<button class="btn dang" onclick="disconnectFb()">Remove</button>' : '') + '</div>';
+  }
+  return h + '</div></section>';
 }
 function saveOrg(e){
   e.preventDefault();
@@ -1774,14 +1915,14 @@ window.addEventListener('hashchange', function(){ document.body.classList.remove
 window.addEventListener('storage', function(e){ if(e.key === APP_KEY && MODE === 'local'){ loadLocal(); scheduleRender(); } });
 (function boot(){
   loadLocal();
-  var cfgTxt = localStorage.getItem(FB_KEY);
-  if(cfgTxt){
-    var cfg = null; try { cfg = JSON.parse(cfgTxt); } catch(e){}
-    if(cfg){
-      $('#main').innerHTML = '<div class="empty"><b>Connecting to cloud...</b></div>';
-      initFirebase(cfg).then(render).catch(function(e){ console.error(e); MODE = 'local'; toast('Cloud sync failed, using this device: ' + e.message); render(); });
-      return;
-    }
+  var cfg = getCfg();
+  if(cfg){
+    $('#main').innerHTML = '<div class="empty"><b>Connecting to cloud...</b></div>';
+    initFirebase(cfg).then(render).catch(function(e){
+      console.error(e); MODE = 'local'; render();
+      toast('Cloud sync failed: ' + fbMsg(e));
+    });
+    return;
   }
   render();
 })();
